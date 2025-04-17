@@ -3,7 +3,8 @@
         "company": "Napoli Shkolnik PLLC",
         "job_title": "IT Assistant",
         "start_date": "August 2022",
-        "end_date": "",
+        "is_current": true,
+        "end_date": "Present",
         "responsibilities": "Test\nTest2"
     }
 ]

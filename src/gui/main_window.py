@@ -3,6 +3,7 @@ from tkinter import ttk
 from src.gui.forms.resume_form import ResumeForm
 from src.gui.forms.personal_info_form import PersonalInfoForm
 from src.gui.forms.work_experience_form import WorkExperienceForm
+from src.gui.forms.skills_form import SkillsForm
 
 class MainWindow:
     def __init__(self, root):
@@ -14,7 +15,7 @@ class MainWindow:
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
         
-                # Create Resume tab (now a selection interface)
+        # Create Resume tab (now a selection interface)
         self.resume_frame = ttk.Frame(self.notebook)
         self.resume_form = ResumeForm(self.resume_frame)
         self.resume_form.pack(expand=True, fill='both', padx=10, pady=10)
@@ -36,6 +37,12 @@ class MainWindow:
         self.work_experience_form = WorkExperienceForm(self.work_experience_frame)
         self.work_experience_form.pack(expand=True, fill='both', padx=10, pady=10)
         self.notebook.add(self.work_experience_frame, text='Work Experience')
+        
+        # Create Skills tab
+        self.skills_frame = ttk.Frame(self.notebook)
+        self.skills_form = SkillsForm(self.skills_frame)
+        self.skills_form.pack(expand=True, fill='both', padx=10, pady=10)
+        self.notebook.add(self.skills_frame, text='Skills')
         
         # Add Templates tab
         self.templates_tab = ttk.Frame(self.notebook)

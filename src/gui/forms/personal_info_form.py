@@ -2,12 +2,20 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
+import sys
 
 class PersonalInfoForm(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.data_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
-                                     "data", "personal_info.json")
+        # Get the base directory for data storage
+        if getattr(sys, 'frozen', False):
+            # If running as executable
+            self.base_dir = os.path.dirname(sys.executable)
+        else:
+            # If running as script
+            self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            
+        self.data_file = os.path.join(self.base_dir, "data", "personal_info.json")
         self.init_ui()
         self.load_data()
         

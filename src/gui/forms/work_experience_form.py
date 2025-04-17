@@ -2,13 +2,21 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
+import sys
 from datetime import datetime
 
 class WorkExperienceForm(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.data_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
-                                     "data", "work_experience.json")
+        # Get the base directory for data storage
+        if getattr(sys, 'frozen', False):
+            # If running as executable
+            self.base_dir = os.path.dirname(sys.executable)
+        else:
+            # If running as script
+            self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            
+        self.data_file = os.path.join(self.base_dir, "data", "work_experience.json")
         self.experiences = []
         self.init_ui()
         self.load_data()
@@ -75,7 +83,12 @@ class WorkExperienceForm(ttk.Frame):
         end_date_entry = ttk.Entry(duration_frame, width=15)
         end_date_entry.pack(side='left', padx=5)
         
-        ttk.Checkbutton(duration_frame, text="Current Position").pack(side='left', padx=5)
+        # Current Position checkbox
+        current_position_var = tk.BooleanVar(value=False)
+        current_position_cb = ttk.Checkbutton(duration_frame, text="Current Position", 
+                                             variable=current_position_var,
+                                             command=lambda: self.toggle_end_date(end_date_entry, current_position_var))
+        current_position_cb.pack(side='left', padx=5)
         
         # Responsibilities
         resp_frame = ttk.Frame(exp_frame)
@@ -103,6 +116,7 @@ class WorkExperienceForm(ttk.Frame):
             'job_title': job_title_entry,
             'start_date': start_date_entry,
             'end_date': end_date_entry,
+            'current_position': current_position_var,
             'responsibilities': resp_text
         }
         
@@ -112,11 +126,29 @@ class WorkExperienceForm(ttk.Frame):
         if experience_data:
             self.populate_experience(experience, experience_data)
             
+    def toggle_end_date(self, end_date_entry, current_position_var):
+        if current_position_var.get():
+            end_date_entry.delete(0, tk.END)
+            end_date_entry.insert(0, "Present")
+            end_date_entry.configure(state='disabled')
+        else:
+            end_date_entry.configure(state='normal')
+            
     def populate_experience(self, experience, data):
         experience['company'].insert(0, data.get('company', ''))
         experience['job_title'].insert(0, data.get('job_title', ''))
         experience['start_date'].insert(0, data.get('start_date', ''))
-        experience['end_date'].insert(0, data.get('end_date', ''))
+        
+        # Handle current position
+        is_current = data.get('is_current', False)
+        experience['current_position'].set(is_current)
+        
+        if is_current:
+            experience['end_date'].insert(0, "Present")
+            experience['end_date'].configure(state='disabled')
+        else:
+            experience['end_date'].insert(0, data.get('end_date', ''))
+            
         experience['responsibilities'].insert('1.0', data.get('responsibilities', ''))
         
     def save_experience(self, exp_frame):
@@ -125,12 +157,18 @@ class WorkExperienceForm(ttk.Frame):
         if not experience:
             return
             
+        # Validate required fields
+        if not experience['company'].get() or not experience['job_title'].get() or not experience['start_date'].get():
+            messagebox.showwarning("Missing Information", "Please fill in all required fields (Company, Job Title, Start Date)")
+            return
+            
         # Get the data
         data = {
             'company': experience['company'].get(),
             'job_title': experience['job_title'].get(),
             'start_date': experience['start_date'].get(),
-            'end_date': experience['end_date'].get(),
+            'is_current': experience['current_position'].get(),
+            'end_date': experience['end_date'].get() if not experience['current_position'].get() else "Present",
             'responsibilities': experience['responsibilities'].get('1.0', 'end-1c')
         }
         
@@ -149,7 +187,8 @@ class WorkExperienceForm(ttk.Frame):
             'company': exp['company'].get(),
             'job_title': exp['job_title'].get(),
             'start_date': exp['start_date'].get(),
-            'end_date': exp['end_date'].get(),
+            'is_current': exp['current_position'].get(),
+            'end_date': exp['end_date'].get() if not exp['current_position'].get() else "Present",
             'responsibilities': exp['responsibilities'].get('1.0', 'end-1c')
         } for exp in self.experiences]
         

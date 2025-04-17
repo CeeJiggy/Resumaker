@@ -1,9 +1,9 @@
 {
-    "include_personal": true,
-    "include_experience": true,
-    "selected_experiences": [],
-    "font": "Arial",
+    "selected_experiences": [
+        "Napoli Shkolnik PLLC - IT Assistant"
+    ],
     "font_size": "11",
     "page_size": "Letter",
-    "margins": "1"
+    "margins": "1",
+    "summary": "Dedicated IT support specialist committed to providing reliable technical solutions and exceptional user assistance to ensure seamless operations in the digital landscape.\n\n\n\n\n"
 }
