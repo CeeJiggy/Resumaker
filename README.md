@@ -1,53 +1,90 @@
 # ResuMaker
 
-A desktop application for generating customized resumes and cover letters from templates.
+A cross-platform resume builder application built with React Native and Expo. Create professional resumes that can be exported as PDFs.
 
 ## Features
 
-- Pre-made templates for resumes and cover letters
-- Customizable content chunks
-- Job-specific customization
-- Export to editable PDFs
-- Local storage of templates and content
+- Create and edit resumes with a user-friendly interface
+- Support for personal information, work experience, education, and skills
+- Live preview of your resume
+- Export to PDF format
+- Works on web, iOS, and Android platforms
 
-## Setup
+## Prerequisites
 
-1. Create a virtual environment:
+- Node.js (v14 or later)
+- npm or yarn
+- Expo CLI (`npm install -g expo-cli`)
+
+## Installation
+
+1. Clone the repository:
 ```bash
-python -m venv venv
+git clone https://github.com/yourusername/resumaker.git
+cd resumaker
 ```
 
-2. Activate the virtual environment:
-- Windows:
+2. Install dependencies:
 ```bash
-.\venv\Scripts\activate
-```
-- Unix/MacOS:
-```bash
-source venv/bin/activate
+npm install
+# or
+yarn install
 ```
 
-3. Install dependencies:
+## Running the Application
+
+### Web Version
 ```bash
-pip install -r requirements.txt
+npm run web
+# or
+yarn web
 ```
 
-4. Run the application:
+### iOS Version
 ```bash
-python src/main.py
+npm run ios
+# or
+yarn ios
 ```
+
+### Android Version
+```bash
+npm run android
+# or
+yarn android
+```
+
+## Development
+
+The application is built using:
+- React Native
+- Expo
+- React Navigation
+- React Native Paper
+- TypeScript
 
 ## Project Structure
 
 ```
-resumaker/
-├── src/
-│   ├── main.py                 # Application entry point
-│   ├── gui/                    # GUI components
-│   ├── templates/              # Document templates
-│   ├── content/               # Content chunks
-│   ├── pdf/                   # PDF generation
-│   └── database/              # Database management
-├── requirements.txt           # Project dependencies
-└── README.md                 # This file
-``` 
+src/
+  ├── screens/
+  │   ├── HomeScreen.tsx
+  │   ├── ResumeBuilderScreen.tsx
+  │   └── PreviewScreen.tsx
+  ├── components/
+  │   └── (shared components)
+  └── types/
+      └── (TypeScript type definitions)
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 
