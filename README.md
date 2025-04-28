@@ -1,90 +1,12 @@
-# ResuMaker
+# React + Vite
 
-A cross-platform resume builder application built with React Native and Expo. Create professional resumes that can be exported as PDFs.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Features
+Currently, two official plugins are available:
 
-- Create and edit resumes with a user-friendly interface
-- Support for personal information, work experience, education, and skills
-- Live preview of your resume
-- Export to PDF format
-- Works on web, iOS, and Android platforms
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Prerequisites
+## Expanding the ESLint configuration
 
-- Node.js (v14 or later)
-- npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/resumaker.git
-cd resumaker
-```
-
-2. Install dependencies:
-```bash
-npm install
-# or
-yarn install
-```
-
-## Running the Application
-
-### Web Version
-```bash
-npm run web
-# or
-yarn web
-```
-
-### iOS Version
-```bash
-npm run ios
-# or
-yarn ios
-```
-
-### Android Version
-```bash
-npm run android
-# or
-yarn android
-```
-
-## Development
-
-The application is built using:
-- React Native
-- Expo
-- React Navigation
-- React Native Paper
-- TypeScript
-
-## Project Structure
-
-```
-src/
-  ├── screens/
-  │   ├── HomeScreen.tsx
-  │   ├── ResumeBuilderScreen.tsx
-  │   └── PreviewScreen.tsx
-  ├── components/
-  │   └── (shared components)
-  └── types/
-      └── (TypeScript type definitions)
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
