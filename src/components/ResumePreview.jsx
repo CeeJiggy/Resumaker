@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
+import html2pdf from 'html2pdf.js';
 
 const StyledPaper = styled(Paper)(() => ({
     width: '8.5in',
@@ -71,8 +72,48 @@ const JobTitle = styled(Typography)(() => ({
 }));
 
 const ResumePreview = ({ resumeData }) => {
-    const handlePrint = () => {
-        window.print();
+    const handleExportPDF = () => {
+        const element = document.getElementById('resume-preview');
+        const printButton = document.querySelector('.print-button');
+
+        // Save original styles
+        const originalMargin = element.style.margin;
+        const originalWidth = element.style.width;
+
+        // Temporarily set margin and width for perfect PDF alignment
+        element.style.margin = '0';
+        element.style.width = '8.5in';
+
+        if (printButton) {
+            printButton.style.display = 'none';
+        }
+
+        const opt = {
+            filename: 'resume.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                scrollX: 0,
+                scrollY: 0,
+                backgroundColor: '#fff',
+            },
+            jsPDF: {
+                unit: 'in',
+                format: 'letter',
+                orientation: 'portrait'
+            }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Restore styles
+            element.style.margin = originalMargin;
+            element.style.width = originalWidth;
+            if (printButton) {
+                printButton.style.display = 'block';
+            }
+        });
     };
 
     const formatPhoneNumber = (phoneNumber) => {
@@ -190,8 +231,9 @@ const ResumePreview = ({ resumeData }) => {
             <Button
                 variant="contained"
                 color="primary"
-                onClick={handlePrint}
+                onClick={handleExportPDF}
                 startIcon={<PrintIcon />}
+                className="print-button"
                 sx={{
                     mb: 2,
                     '@media print': {
@@ -199,7 +241,7 @@ const ResumePreview = ({ resumeData }) => {
                     }
                 }}
             >
-                Print Resume
+                Export PDF
             </Button>
 
             <StyledPaper id="resume-preview">
