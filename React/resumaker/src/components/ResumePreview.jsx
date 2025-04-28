@@ -144,10 +144,33 @@ const ResumePreview = ({ resumeData }) => {
         return startDate || endDate ? `${startDate} - ${endDate}` : '';
     };
 
+    // Helper to get the value for a section, using preset if selected
+    const getSectionValue = (sectionKey, defaultValue) => {
+        const selected = resumeData.config.selectedPresets?.[sectionKey];
+        if (selected && selected !== 'current') {
+            const stored = localStorage.getItem(`presets-${sectionKey}`);
+            if (stored) {
+                const preset = JSON.parse(stored).find(p => p.name === selected);
+                if (preset) {
+                    let value = preset.value;
+                    if (sectionKey === 'skills') {
+                        if (typeof value === 'string') {
+                            value = value.split(',').map(s => s.trim()).filter(Boolean);
+                        }
+                        if (!Array.isArray(value)) {
+                            value = [];
+                        }
+                    }
+                    return value;
+                }
+            }
+        }
+        return defaultValue;
+    };
+
     return (
         <Box sx={{
             width: '100%',
-            overflowX: 'auto',
             '@media screen': {
                 mx: 'auto',
                 px: { xs: 1, sm: 2 },
@@ -204,7 +227,7 @@ const ResumePreview = ({ resumeData }) => {
                                 fontSize: getFontSize(1),
                                 fontWeight: getFontWeight()
                             }}>
-                                {resumeData.summary}
+                                {getSectionValue('summary', resumeData.summary)}
                             </Typography>
                         )}
                         <Box sx={{
@@ -226,7 +249,7 @@ const ResumePreview = ({ resumeData }) => {
                             {resumeData.config.contact.showWebsite && resumeData.personalInfo.website && (
                                 <Typography variant="subtitle1" color="textSecondary">
                                     <Link
-                                        href={resumeData.personalInfo.website}
+                                        href={`https://${resumeData.personalInfo.website.replace(/^https?:\/\//, '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         sx={{
@@ -256,7 +279,7 @@ const ResumePreview = ({ resumeData }) => {
                         <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
                             Experience
                         </SectionTitle>
-                        {resumeData.experience.map((exp, index) => (
+                        {getSectionValue('experience', resumeData.experience).map((exp, index) => (
                             <Box key={index} sx={{ mb: 2 }}>
                                 <Box sx={{
                                     display: 'flex',
@@ -301,12 +324,12 @@ const ResumePreview = ({ resumeData }) => {
                 )}
 
                 {/* Projects Section */}
-                {resumeData.config.sections.projects && resumeData.projects.length > 0 && (
+                {resumeData.config.sections.projects && getSectionValue('projects', resumeData.projects).length > 0 && (
                     <Section>
                         <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
                             Projects
                         </SectionTitle>
-                        {resumeData.projects.map((project, index) => (
+                        {getSectionValue('projects', resumeData.projects).map((project, index) => (
                             <Box key={index} sx={{ mb: 2 }}>
                                 <Box sx={{
                                     display: 'flex',
@@ -353,7 +376,7 @@ const ResumePreview = ({ resumeData }) => {
                         <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
                             Education
                         </SectionTitle>
-                        {resumeData.education.map((edu, index) => (
+                        {getSectionValue('education', resumeData.education).map((edu, index) => (
                             <Box key={index} sx={{ mb: 1 }}>
                                 <Box sx={{
                                     display: 'flex',
@@ -388,19 +411,17 @@ const ResumePreview = ({ resumeData }) => {
                         <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
                             Skills
                         </SectionTitle>
-                        <Box sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 1,
-                            '& > *': {
-                                color: '#333',
-                                fontSize: getFontSize(0.9),
-                                fontWeight: getFontWeight()
-                            }
-                        }}>
-                            {resumeData.skills.map((skill, index) => (
-                                <Typography key={index} variant="body2">
-                                    {index > 0 ? ' • ' : ''}{skill}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {getSectionValue('skills', resumeData.skills).map((skill, idx) => (
+                                <Typography key={idx} variant="body2" sx={{
+                                    background: resumeData.config.style.primaryColor,
+                                    color: '#fff',
+                                    px: 2,
+                                    py: 0.5,
+                                    borderRadius: 2,
+                                    fontWeight: 500
+                                }}>
+                                    {skill}
                                 </Typography>
                             ))}
                         </Box>

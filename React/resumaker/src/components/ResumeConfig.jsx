@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     FormControl,
@@ -12,6 +12,9 @@ import {
     RadioGroup,
     Radio,
     Paper,
+    Select,
+    MenuItem,
+    InputLabel,
 } from '@mui/material';
 import { MuiColorInput } from 'mui-color-input';
 import { styled } from '@mui/material/styles';
@@ -20,7 +23,44 @@ const ConfigSection = styled(Box)(({ theme }) => ({
     marginBottom: theme.spacing(4),
 }));
 
+const sectionKeys = [
+    { key: 'summary', label: 'Professional Summary' },
+    { key: 'experience', label: 'Experience' },
+    { key: 'education', label: 'Education' },
+    { key: 'skills', label: 'Skills' },
+    { key: 'projects', label: 'Projects' },
+];
+
 const ResumeConfig = ({ resumeData, onUpdateResume }) => {
+    // State for loaded presets for each section
+    const [sectionPresets, setSectionPresets] = useState({});
+
+    // Load presets from localStorage for each section
+    useEffect(() => {
+        const newSectionPresets = {};
+        sectionKeys.forEach(({ key }) => {
+            const stored = localStorage.getItem(`presets-${key}`);
+            newSectionPresets[key] = stored ? JSON.parse(stored) : [];
+        });
+        setSectionPresets(newSectionPresets);
+    }, []);
+
+    // Handle preset selection (update config.selectedPresets only)
+    const handlePresetSelect = (sectionKey, presetName) => {
+        const newSelectedPresets = {
+            ...(resumeData.config.selectedPresets || {}),
+            [sectionKey]: presetName,
+        };
+        const newConfig = {
+            ...resumeData.config,
+            selectedPresets: newSelectedPresets,
+        };
+        onUpdateResume({
+            ...resumeData,
+            config: newConfig,
+        });
+    };
+
     const handleConfigChange = (section, field, value) => {
         const newConfig = {
             ...resumeData.config,
@@ -48,51 +88,41 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
             <ConfigSection>
                 <FormLabel component="legend">Visible Sections</FormLabel>
                 <FormGroup>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resumeData.config.sections.summary}
-                                onChange={(e) => handleConfigChange('sections', 'summary', e.target.checked)}
-                            />
-                        }
-                        label="Professional Summary"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resumeData.config.sections.experience}
-                                onChange={(e) => handleConfigChange('sections', 'experience', e.target.checked)}
-                            />
-                        }
-                        label="Experience"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resumeData.config.sections.education}
-                                onChange={(e) => handleConfigChange('sections', 'education', e.target.checked)}
-                            />
-                        }
-                        label="Education"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resumeData.config.sections.skills}
-                                onChange={(e) => handleConfigChange('sections', 'skills', e.target.checked)}
-                            />
-                        }
-                        label="Skills"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={resumeData.config.sections.projects}
-                                onChange={(e) => handleConfigChange('sections', 'projects', e.target.checked)}
-                            />
-                        }
-                        label="Projects"
-                    />
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 2 }}>
+                        {sectionKeys.map(({ key, label }) => (
+                            <React.Fragment key={key}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={resumeData.config.sections[key]}
+                                            onChange={(e) => handleConfigChange('sections', key, e.target.checked)}
+                                        />
+                                    }
+                                    label={label}
+                                    sx={{ minWidth: 200, m: 0 }}
+                                />
+                                {resumeData.config.sections[key] ? (
+                                    <FormControl size="small" sx={{ minWidth: 220, maxWidth: 240 }}>
+                                        <InputLabel>{label} Preset</InputLabel>
+                                        <Select
+                                            value={(resumeData.config.selectedPresets && resumeData.config.selectedPresets[key]) || 'current'}
+                                            label={`${label} Preset`}
+                                            onChange={(e) => handlePresetSelect(key, e.target.value)}
+                                        >
+                                            <MenuItem value="current">Current</MenuItem>
+                                            {sectionPresets[key]?.map((preset) => (
+                                                <MenuItem key={preset.name} value={preset.name}>
+                                                    {preset.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                ) : (
+                                    <Box />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </Box>
                 </FormGroup>
             </ConfigSection>
 

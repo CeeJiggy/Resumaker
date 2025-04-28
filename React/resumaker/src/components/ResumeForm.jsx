@@ -21,6 +21,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ResumeConfig from './ResumeConfig';
+import PresetManager from './PresetManager';
 
 const MONTHS = [
     { value: '', label: 'No Month' },
@@ -338,6 +339,13 @@ function ResumeForm({ resumeData, onUpdateResume }) {
 
             {/* Professional Summary Tab */}
             <TabPanel value={currentTab} index={2}>
+                <PresetManager
+                    fieldId="summary"
+                    value={resumeData.summary}
+                    onValueChange={(value) => onUpdateResume({ ...resumeData, summary: value })}
+                    label="Summary Presets"
+                    placeholder="Enter a name for this summary preset"
+                />
                 <TextField
                     label="Professional Summary"
                     value={resumeData.summary}
@@ -351,6 +359,13 @@ function ResumeForm({ resumeData, onUpdateResume }) {
 
             {/* Experience Tab */}
             <TabPanel value={currentTab} index={3}>
+                <PresetManager
+                    fieldId="experience"
+                    value={resumeData.experience}
+                    onValueChange={(value) => onUpdateResume({ ...resumeData, experience: value })}
+                    label="Experience Presets"
+                    placeholder="Enter a name for this experience preset"
+                />
                 {resumeData.experience.map((exp, index) => (
                     <Box key={index} sx={{ mb: 3, position: 'relative' }}>
                         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, 1fr)', position: 'relative' }}>
@@ -546,6 +561,19 @@ function ResumeForm({ resumeData, onUpdateResume }) {
 
             {/* Skills Tab */}
             <TabPanel value={currentTab} index={6}>
+                <PresetManager
+                    fieldId="skills"
+                    value={resumeData.skills.join(', ')}
+                    onValueChange={(value) => {
+                        const skillsArray = value.split(',').map(skill => skill.trim()).filter(skill => skill !== '');
+                        onUpdateResume({
+                            ...resumeData,
+                            skills: skillsArray.length > 0 ? skillsArray : ['']
+                        });
+                    }}
+                    label="Skills Presets"
+                    placeholder="Enter a name for this skills preset"
+                />
                 {resumeData.skills.map((skill, index) => (
                     <Box key={index} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
                         <TextField
