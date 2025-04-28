@@ -80,7 +80,7 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
     };
 
     return (
-        <Paper sx={{ p: 3 }}>
+        <Box >
             <Typography variant="h6" gutterBottom>
                 Resume Configuration
             </Typography>
@@ -88,7 +88,13 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
             <ConfigSection>
                 <FormLabel component="legend">Visible Sections</FormLabel>
                 <FormGroup>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 2 }}>
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', sm: '260px 1fr' },
+                            gap: 2,
+                        }}
+                    >
                         {sectionKeys.map(({ key, label }) => (
                             <React.Fragment key={key}>
                                 <FormControlLabel
@@ -99,10 +105,10 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
                                         />
                                     }
                                     label={label}
-                                    sx={{ minWidth: 200, m: 0 }}
+                                    sx={{ minWidth: { xs: 0, sm: 200 }, m: 0, width: { xs: '100%', sm: 'auto' } }}
                                 />
                                 {resumeData.config.sections[key] ? (
-                                    <FormControl size="small" sx={{ minWidth: 220, maxWidth: 240 }}>
+                                    <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 220 }, maxWidth: { xs: '100%', sm: 240 }, width: '100%' }}>
                                         <InputLabel>{label} Preset</InputLabel>
                                         <Select
                                             value={(resumeData.config.selectedPresets && resumeData.config.selectedPresets[key]) || 'current'}
@@ -118,7 +124,7 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
                                         </Select>
                                     </FormControl>
                                 ) : (
-                                    <Box />
+                                    <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
                                 )}
                             </React.Fragment>
                         ))}
@@ -200,7 +206,7 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
                     </RadioGroup>
                 </Box>
             </ConfigSection>
-        </Paper>
+        </Box>
     );
 };
 

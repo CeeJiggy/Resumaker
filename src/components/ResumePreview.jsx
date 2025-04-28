@@ -211,6 +211,9 @@ const ResumePreview = ({ resumeData }) => {
 
     return (
         <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            flexDirection: 'column',
             width: '100%',
             '@media screen': {
                 mx: 'auto',
@@ -235,6 +238,7 @@ const ResumePreview = ({ resumeData }) => {
                 startIcon={<PrintIcon />}
                 className="print-button"
                 sx={{
+
                     mb: 2,
                     '@media print': {
                         display: 'none !important'

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
     Box,
     TextField,
@@ -22,6 +23,13 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ResumeConfig from './ResumeConfig';
 import PresetManager from './PresetManager';
+import SettingsIcon from '@mui/icons-material/Settings';
+import PersonIcon from '@mui/icons-material/Person';
+import DescriptionIcon from '@mui/icons-material/Description';
+import WorkIcon from '@mui/icons-material/Work';
+import BuildIcon from '@mui/icons-material/Build';
+import SchoolIcon from '@mui/icons-material/School';
+import StarIcon from '@mui/icons-material/Star';
 
 const MONTHS = [
     { value: '', label: 'No Month' },
@@ -48,7 +56,7 @@ function TabPanel({ children, value, index, ...other }) {
             aria-labelledby={`resume-tab-${index}`}
             {...other}
             style={{
-                maxHeight: '80vh',
+                maxHeight: '75vh',
                 overflowY: 'auto',
             }}
         >
@@ -63,6 +71,8 @@ function TabPanel({ children, value, index, ...other }) {
 
 function ResumeForm({ resumeData, onUpdateResume }) {
     const [currentTab, setCurrentTab] = useState(0);
+    const theme = useTheme();
+    const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
     const handleTabChange = (event, newValue) => {
         setCurrentTab(newValue);
@@ -221,7 +231,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
     };
 
     return (
-        <Paper sx={{ position: 'relative' }}>
+        <Paper sx={{ position: 'relative', p: { xs: 1, sm: 2, md: 3 } }}>
             <Box sx={{
                 borderBottom: 1,
                 borderColor: 'divider',
@@ -236,14 +246,26 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                     variant="scrollable"
                     scrollButtons="auto"
                     aria-label="resume sections"
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        '& .MuiTab-root': {
+                            minWidth: { xs: '40px', sm: '50px' },
+                            minHeight: { xs: '48px', sm: '48px' },
+                            padding: { xs: '6px', sm: '12px 16px' },
+                        },
+                        '& .MuiTabs-flexContainer': {
+                            justifyContent: 'space-around',
+                        }
+                    }}
                 >
-                    <Tab label="Resume Config" />
-                    <Tab label="Personal Information" />
-                    <Tab label="Professional Summary" />
-                    <Tab label="Experience" />
-                    <Tab label="Projects" />
-                    <Tab label="Education" />
-                    <Tab label="Skills" />
+                    <Tab icon={<SettingsIcon />} label={isSmall ? '' : 'Resume'} />
+                    <Tab icon={<PersonIcon />} label={isSmall ? '' : 'Info'} />
+                    <Tab icon={<DescriptionIcon />} label={isSmall ? '' : 'Summary'} />
+                    <Tab icon={<WorkIcon />} label={isSmall ? '' : 'Jobs'} />
+                    <Tab icon={<BuildIcon />} label={isSmall ? '' : 'Projects'} />
+                    <Tab icon={<SchoolIcon />} label={isSmall ? '' : 'Education'} />
+                    <Tab icon={<StarIcon />} label={isSmall ? '' : 'Skills'} />
                 </Tabs>
             </Box>
 
@@ -368,7 +390,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                 />
                 {resumeData.experience.map((exp, index) => (
                     <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, 1fr)', position: 'relative' }}>
+                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
                             <TextField
                                 label="Company"
                                 value={exp.company}
@@ -479,7 +501,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
             <TabPanel value={currentTab} index={4}>
                 {resumeData.projects.map((project, index) => (
                     <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, 1fr)', position: 'relative' }}>
+                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
                             <TextField
                                 label="Project Name"
                                 value={project.name}
@@ -522,7 +544,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
             <TabPanel value={currentTab} index={5}>
                 {resumeData.education.map((edu, index) => (
                     <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, 1fr)', position: 'relative' }}>
+                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
                             <TextField
                                 label="Institution"
                                 value={edu.institution}
