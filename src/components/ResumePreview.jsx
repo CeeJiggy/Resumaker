@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
-import html2pdf from 'html2pdf.js';
+import '../styles/print.css';
 
 const StyledPaper = styled(Paper)(() => ({
     width: '8.5in',
@@ -88,32 +88,15 @@ const ResumePreview = ({ resumeData }) => {
             printButton.style.display = 'none';
         }
 
-        const opt = {
-            filename: 'resume.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                scrollX: 0,
-                scrollY: 0,
-                backgroundColor: '#fff',
-            },
-            jsPDF: {
-                unit: 'in',
-                format: 'letter',
-                orientation: 'portrait'
-            }
-        };
+        // Open the browser's print dialog
+        window.print();
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            // Restore styles
-            element.style.margin = originalMargin;
-            element.style.width = originalWidth;
-            if (printButton) {
-                printButton.style.display = 'block';
-            }
-        });
+        // Restore styles
+        element.style.margin = originalMargin;
+        element.style.width = originalWidth;
+        if (printButton) {
+            printButton.style.display = 'block';
+        }
     };
 
     const formatPhoneNumber = (phoneNumber) => {
@@ -238,7 +221,6 @@ const ResumePreview = ({ resumeData }) => {
                 startIcon={<PrintIcon />}
                 className="print-button"
                 sx={{
-
                     mb: 2,
                     '@media print': {
                         display: 'none !important'
@@ -248,64 +230,90 @@ const ResumePreview = ({ resumeData }) => {
                 Export PDF
             </Button>
 
-            <StyledPaper id="resume-preview">
+            <StyledPaper id="resume-preview" sx={{
+                '@media print': {
+                    '&::before, &::after': {
+                        display: 'none !important',
+                    },
+                    '& *': {
+                        '-webkit-print-color-adjust': 'exact',
+                        'print-color-adjust': 'exact',
+                    },
+                }
+            }}>
                 {/* Header Section */}
                 <Section>
                     <Typography variant="h3" sx={{
                         fontFamily: 'League Spartan',
                         fontSize: getFontSize(2.5),
                         fontWeight: 700,
+                        textAlign: 'center',
                         color: '#333',
-                        mb: 2
+                        mb: 0.5
                     }}>
                         {resumeData.personalInfo.name}
                     </Typography>
                     <Box sx={{
+                        width: '110%',
+                        justifySelf: 'center',
+                        height: '3px',
+                        background: `linear-gradient(90deg, transparent 0%, ${resumeData.config.style.primaryColor} 20%, ${resumeData.config.style.primaryColor} 80%, transparent 100%)`,
+                        marginBottom: '0.5rem'
+                    }} />
+                    <Box sx={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        justifyContent: 'center',
                         alignItems: 'flex-start',
                         gap: 2
                     }}>
-                        {resumeData.config.sections.summary && (
-                            <Typography variant="body1" sx={{
-                                maxWidth: '60%',
-                                color: '#333',
-                                fontSize: getFontSize(1),
-                                fontWeight: getFontWeight()
-                            }}>
-                                {getSectionValue('summary', resumeData.summary)}
-                            </Typography>
-                        )}
                         <Box sx={{
-                            textAlign: 'right',
+                            textAlign: 'center',
                             fontSize: getFontSize(0.875),
+                            fontFamily: 'League Spartan',
                             display: 'flex',
-                            flexDirection: 'column'
+                            flexDirection: 'row',
+                            gap: 1,
+                            alignItems: 'center',
+                            flexWrap: 'nowrap',
+                            marginTop: '0px',
+                            justifyContent: 'center',
+                            width: '100%',
+                            overflow: 'visible',
+                            whiteSpace: 'nowrap'
                         }}>
-                            {renderAddress() && (
-                                <Typography variant="subtitle1" color="textSecondary">
-                                    {renderAddress()}
-                                </Typography>
+                            {resumeData.config.contact.showLocation && renderAddress() && (
+                                <>
+                                    <Typography variant="subtitle1" color="textSecondary">
+                                        {renderAddress()}
+                                    </Typography>
+                                    <Typography color="textSecondary">|</Typography>
+                                </>
                             )}
                             {resumeData.config.contact.showPhone && resumeData.personalInfo.phone && (
-                                <Typography variant="subtitle1" color="textSecondary">
-                                    {formatPhoneNumber(resumeData.personalInfo.phone)}
-                                </Typography>
+                                <>
+                                    <Typography variant="subtitle1" color="textSecondary">
+                                        {formatPhoneNumber(resumeData.personalInfo.phone)}
+                                    </Typography>
+                                    <Typography color="textSecondary">|</Typography>
+                                </>
                             )}
                             {resumeData.config.contact.showWebsite && resumeData.personalInfo.website && (
-                                <Typography variant="subtitle1" color="textSecondary">
-                                    <Link
-                                        href={`https://${resumeData.personalInfo.website.replace(/^https?:\/\//, '')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        sx={{
-                                            color: resumeData.config.style.primaryColor,
-                                            textDecoration: 'none'
-                                        }}
-                                    >
-                                        {resumeData.personalInfo.website}
-                                    </Link>
-                                </Typography>
+                                <>
+                                    <Typography variant="subtitle1" color="textSecondary">
+                                        <Link
+                                            href={`https://${resumeData.personalInfo.website.replace(/^https?:\/\//, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                                color: resumeData.config.style.primaryColor,
+                                                textDecoration: 'none'
+                                            }}
+                                        >
+                                            {resumeData.personalInfo.website}
+                                        </Link>
+                                    </Typography>
+                                    <Typography color="textSecondary">|</Typography>
+                                </>
                             )}
                             {resumeData.config.contact.showEmail && resumeData.personalInfo.email && (
                                 <Typography
@@ -317,6 +325,21 @@ const ResumePreview = ({ resumeData }) => {
                             )}
                         </Box>
                     </Box>
+
+                    {resumeData.config.sections.summary && (
+                        <Typography variant="body1" sx={{
+                            textAlign: 'center',
+                            color: '#333',
+                            fontFamily: 'League Spartan',
+                            fontSize: getFontSize(1),
+                            fontWeight: getFontWeight(),
+                            mt: 2,
+                            maxWidth: '80%',
+                            mx: 'auto'
+                        }}>
+                            {getSectionValue('summary', resumeData.summary)}
+                        </Typography>
+                    )}
                 </Section>
 
                 {/* Experience Section */}

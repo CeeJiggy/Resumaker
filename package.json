@@ -18,8 +18,13 @@
     "@fontsource/league-spartan": "^5.2.5",
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
+    "html-to-text": "^9.0.5",
+    "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
-    "mui-color-input": "^7.0.0"
+    "jspdf": "^3.0.1",
+    "jspdf-html2canvas": "^1.5.2",
+    "mui-color-input": "^7.0.0",
+    "react-to-pdf": "^2.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
