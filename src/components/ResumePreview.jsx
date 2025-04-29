@@ -20,6 +20,13 @@ const StyledPaper = styled(Paper)(() => ({
     left: '50%',
     top: '50%',
     transform: 'translate(-50%, -50%)',
+    fontFamily: 'League Spartan',
+    '& .MuiTypography-root': {
+        fontFamily: 'League Spartan'
+    },
+    '& .MuiButton-root': {
+        fontFamily: 'League Spartan'
+    },
     '@media screen and (max-width: 1000px)': {
         transform: 'translate(-50%, -50%) scale(0.8)',
     },
@@ -204,15 +211,10 @@ const ResumePreview = ({ resumeData }) => {
                 height: 'calc(11in * 0.35 + 5rem)',
             },
             '@media print': {
-                '& > *:not(#resume-preview)': {
-                    display: 'none !important'
-                },
-                backgroundColor: '#fff',
-                margin: 0,
+                height: 'auto',
                 padding: 0,
-                maxWidth: 'none',
-                overflow: 'visible',
-                height: 'auto'
+                margin: 0,
+                overflow: 'visible'
             }
         }}>
             <Button
@@ -238,9 +240,25 @@ const ResumePreview = ({ resumeData }) => {
                 position: 'relative',
                 height: '100%',
                 width: '100%',
-                pt: '0.5rem'
+                pt: '0.5rem',
+                '@media print': {
+                    height: 'auto',
+                    padding: 0,
+                    position: 'static'
+                }
             }}>
-                <StyledPaper id="resume-preview">
+                <StyledPaper id="resume-preview" sx={{
+                    '@media print': {
+                        position: 'static',
+                        transform: 'none',
+                        margin: 0,
+                        padding: '0.75in',
+                        boxShadow: 'none',
+                        width: '100%',
+                        height: 'auto',
+                        minHeight: 0
+                    }
+                }}>
                     {/* Header Section */}
                     <Section>
                         <Typography variant="h3" sx={{

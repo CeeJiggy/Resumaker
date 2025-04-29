@@ -231,14 +231,46 @@ function ResumeForm({ resumeData, onUpdateResume }) {
     };
 
     return (
-        <Paper sx={{ position: 'relative', p: { xs: 1, sm: 2, md: 3 } }}>
+        <Paper sx={{
+            position: 'relative',
+            p: { xs: 1, sm: 2, md: 3 },
+            width: '100%',
+            maxWidth: { xs: '100%', sm: '600px', md: '800px' },
+            mx: 'auto',
+            boxSizing: 'border-box',
+            fontFamily: 'League Spartan',
+            '& .MuiTypography-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiInputBase-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiInputLabel-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiButton-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiTab-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiMenuItem-root': {
+                fontFamily: 'League Spartan'
+            },
+            '& .MuiFormControlLabel-label': {
+                fontFamily: 'League Spartan'
+            }
+        }}>
             <Box sx={{
                 borderBottom: 1,
                 borderColor: 'divider',
                 position: 'sticky',
+                minWidth: '288px',
                 top: 0,
                 backgroundColor: 'background.paper',
-                zIndex: 1
+                zIndex: 1,
+                mx: { xs: -1, sm: -2, md: -3 },
+                px: { xs: 1, sm: 2, md: 3 }
             }}>
                 <Tabs
                     value={currentTab}
@@ -253,9 +285,18 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                             minWidth: { xs: '40px', sm: '50px' },
                             minHeight: { xs: '48px', sm: '48px' },
                             padding: { xs: '6px', sm: '12px 16px' },
+                            '&:focus': {
+                                outline: 'none'
+                            },
+                            '&.Mui-focusVisible': {
+                                outline: 'none'
+                            }
                         },
                         '& .MuiTabs-flexContainer': {
                             justifyContent: 'space-around',
+                        },
+                        '& .MuiTabs-indicator': {
+                            height: 3
                         }
                     }}
                 >
