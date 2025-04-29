@@ -12,22 +12,31 @@ import PrintIcon from '@mui/icons-material/Print';
 const StyledPaper = styled(Paper)(() => ({
     width: '8.5in',
     minHeight: '11in',
-    margin: '0 auto',
     padding: '3rem 1in 3rem 1in',
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     backgroundColor: '#fff',
-    '@media screen and (max-width: 8.5in)': {
-        width: '100%',
-        margin: '0 1rem',
-        padding: '2rem 0.5in',
-        transform: 'scale(1)',
-        transformOrigin: 'top center',
-        minHeight: 'auto'
+    transformOrigin: 'center',
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    '@media screen and (max-width: 1000px)': {
+        transform: 'translate(-50%, -50%) scale(0.8)',
+    },
+    '@media screen and (max-width: 800px)': {
+        transform: 'translate(-50%, -50%) scale(0.65)',
+    },
+    '@media screen and (max-width: 600px)': {
+        transform: 'translate(-50%, -50%) scale(0.45)',
+    },
+    '@media screen and (max-width: 400px)': {
+        transform: 'translate(-50%, -50%) scale(0.35)',
     },
     '@media print': {
         margin: 0,
         padding: '0.75in 0.75in',
         boxShadow: 'none',
+        position: 'static',
         transform: 'none',
         '@page': {
             size: 'letter',
@@ -171,13 +180,28 @@ const ResumePreview = ({ resumeData }) => {
     return (
         <Box sx={{
             display: 'flex',
-            justifyContent: 'center',
             flexDirection: 'column',
+            alignItems: 'center',
             width: '100%',
+            position: 'relative',
+            overflow: 'hidden',
+            height: 'calc(11in + 5rem)',
+            paddingTop: '3.5rem',
             '@media screen': {
                 mx: 'auto',
-                px: { xs: 1, sm: 2 },
-                maxWidth: '8.5in'
+                px: { xs: 0, sm: 0 },
+            },
+            '@media screen and (max-width: 1000px)': {
+                height: 'calc(11in * 0.8 + 5rem)',
+            },
+            '@media screen and (max-width: 800px)': {
+                height: 'calc(11in * 0.65 + 5rem)',
+            },
+            '@media screen and (max-width: 600px)': {
+                height: 'calc(11in * 0.45 + 5rem)',
+            },
+            '@media screen and (max-width: 400px)': {
+                height: 'calc(11in * 0.35 + 5rem)',
             },
             '@media print': {
                 '& > *:not(#resume-preview)': {
@@ -187,7 +211,8 @@ const ResumePreview = ({ resumeData }) => {
                 margin: 0,
                 padding: 0,
                 maxWidth: 'none',
-                overflow: 'visible'
+                overflow: 'visible',
+                height: 'auto'
             }
         }}>
             <Button
@@ -197,7 +222,10 @@ const ResumePreview = ({ resumeData }) => {
                 startIcon={<PrintIcon />}
                 className="print-button"
                 sx={{
-                    mb: 2,
+                    position: 'absolute',
+                    top: '1rem',
+                    zIndex: 1,
+                    boxShadow: 3,
                     '@media print': {
                         display: 'none !important'
                     }
@@ -206,266 +234,264 @@ const ResumePreview = ({ resumeData }) => {
                 Print Resume
             </Button>
 
-            <StyledPaper id="resume-preview">
-                {/* Header Section */}
-                <Section>
-                    <Typography variant="h3" sx={{
-                        fontFamily: 'League Spartan',
-                        fontSize: getFontSize(2.5),
-                        fontWeight: 700,
-                        textAlign: 'center',
-                        color: '#333',
-                        mb: 0.5
-                    }}>
-
-
-                        {resumeData.personalInfo.name}
-                    </Typography>
-                    <Box sx={{
-                        width: '110%',
-                        justifySelf: 'center',
-                        height: '3px',
-                        background: `linear-gradient(90deg, transparent 0%, ${resumeData.config.style.primaryColor} 20%, ${resumeData.config.style.primaryColor} 80%, transparent 100%)`,
-                        marginBottom: '0.5rem'
-                    }} />
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        gap: 2
-                    }}>
-                        <Box sx={{
-                            textAlign: 'center',
-                            fontSize: getFontSize(0.875),
+            <Box sx={{
+                position: 'relative',
+                height: '100%',
+                width: '100%',
+                pt: '0.5rem'
+            }}>
+                <StyledPaper id="resume-preview">
+                    {/* Header Section */}
+                    <Section>
+                        <Typography variant="h3" sx={{
                             fontFamily: 'League Spartan',
-                            display: 'flex',
-                            flexDirection: 'row',
-                            gap: 1,
-                            alignItems: 'center',
-                            flexWrap: 'nowrap',
-                            marginTop: '0px',
-                            justifyContent: 'center',
-                            width: '100%',
-                            overflow: 'visible',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            {resumeData.config.contact.showLocation && renderAddress() && (
-                                <>
-                                    <Typography variant="subtitle1" color="textSecondary">
-                                        {renderAddress()}
-                                    </Typography>
-                                    <Typography color="textSecondary">|</Typography>
-                                </>
-                            )}
-                            {resumeData.config.contact.showPhone && resumeData.personalInfo.phone && (
-                                <>
-                                    <Typography variant="subtitle1" color="textSecondary">
-                                        {formatPhoneNumber(resumeData.personalInfo.phone)}
-                                    </Typography>
-                                    <Typography color="textSecondary">|</Typography>
-                                </>
-                            )}
-                            {resumeData.config.contact.showWebsite && resumeData.personalInfo.website && (
-                                <>
-                                    <Typography variant="subtitle1" color="textSecondary">
-                                        <Link
-                                            href={`https://${resumeData.personalInfo.website.replace(/^https?:\/\//, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            sx={{
-                                                color: resumeData.config.style.primaryColor,
-                                                textDecoration: 'none'
-                                            }}
-                                        >
-                                            {resumeData.personalInfo.website}
-                                        </Link>
-                                    </Typography>
-                                    <Typography color="textSecondary">|</Typography>
-                                </>
-                            )}
-                            {resumeData.config.contact.showEmail && resumeData.personalInfo.email && (
-                                <Typography
-                                    variant="subtitle1"
-                                    sx={{ color: resumeData.config.style.primaryColor }}
-                                >
-                                    {resumeData.personalInfo.email}
-                                </Typography>
-                            )}
-                        </Box>
-                    </Box>
-
-                    {resumeData.config.sections.summary && (
-                        <Typography variant="body1" sx={{
+                            fontSize: getFontSize(2.5),
+                            fontWeight: 700,
                             textAlign: 'center',
                             color: '#333',
-                            fontFamily: 'League Spartan',
-                            fontSize: getFontSize(1),
-                            fontWeight: getFontWeight(),
-                            mt: 2,
-                            maxWidth: '80%',
-                            mx: 'auto'
+                            mb: 0.5
                         }}>
-                            {getSectionValue('summary', resumeData.summary)}
+                            {resumeData.personalInfo.name}
                         </Typography>
-                    )}
-                </Section>
 
-
-                {/* Experience Section */}
-                {resumeData.config.sections.experience && (
-                    <Section>
-                        <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
-                            Experience
-                        </SectionTitle>
-                        {getSectionValue('experience', resumeData.experience).map((exp, index) => (
-                            <Box key={index} sx={{ mb: 2 }}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'baseline',
-                                    mb: 0.5
-                                }}>
-                                    <Box>
-                                        <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
-                                            {exp.company}
-                                        </CompanyName>
-                                        {exp.position && (
-                                            <>
-                                                <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
-                                                <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
-                                                    {exp.position}
-                                                </JobTitle>
-                                            </>
-                                        )}
-                                    </Box>
-                                    <DateRange sx={{ fontSize: getFontSize(0.9) }}>
-                                        {formatExperienceDate(exp)}
-                                    </DateRange>
-                                </Box>
-                                <Typography variant="body2" sx={{
-                                    color: '#333',
-                                    fontSize: getFontSize(0.875),
-                                    fontWeight: getFontWeight(),
-                                    pl: 2,
-                                    position: 'relative',
-                                    '&::before': {
-                                        content: '"•"',
-                                        position: 'absolute',
-                                        left: 0,
-                                    }
-                                }}>
-                                    {exp.description}
-                                </Typography>
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'flex-start',
+                            gap: 2
+                        }}>
+                            <Box sx={{
+                                textAlign: 'center',
+                                fontSize: getFontSize(0.875),
+                                fontFamily: 'League Spartan',
+                                display: 'flex',
+                                flexDirection: 'row',
+                                gap: 1,
+                                alignItems: 'center',
+                                flexWrap: 'nowrap',
+                                marginTop: '0px',
+                                justifyContent: 'center',
+                                width: '100%',
+                                overflow: 'visible',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {resumeData.config.contact.showLocation && renderAddress() && (
+                                    <>
+                                        <Typography variant="subtitle1" color="textSecondary">
+                                            {renderAddress()}
+                                        </Typography>
+                                        <Typography color="textSecondary">|</Typography>
+                                    </>
+                                )}
+                                {resumeData.config.contact.showPhone && resumeData.personalInfo.phone && (
+                                    <>
+                                        <Typography variant="subtitle1" color="textSecondary">
+                                            {formatPhoneNumber(resumeData.personalInfo.phone)}
+                                        </Typography>
+                                        <Typography color="textSecondary">|</Typography>
+                                    </>
+                                )}
+                                {resumeData.config.contact.showWebsite && resumeData.personalInfo.website && (
+                                    <>
+                                        <Typography variant="subtitle1" color="textSecondary">
+                                            <Link
+                                                href={`https://${resumeData.personalInfo.website.replace(/^https?:\/\//, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                sx={{
+                                                    color: resumeData.config.style.primaryColor,
+                                                    textDecoration: 'none'
+                                                }}
+                                            >
+                                                {resumeData.personalInfo.website}
+                                            </Link>
+                                        </Typography>
+                                        <Typography color="textSecondary">|</Typography>
+                                    </>
+                                )}
+                                {resumeData.config.contact.showEmail && resumeData.personalInfo.email && (
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx={{ color: resumeData.config.style.primaryColor }}
+                                    >
+                                        {resumeData.personalInfo.email}
+                                    </Typography>
+                                )}
                             </Box>
-                        ))}
-                    </Section>
-                )}
-
-                {/* Projects Section */}
-                {resumeData.config.sections.projects && getSectionValue('projects', resumeData.projects).length > 0 && (
-                    <Section>
-                        <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
-                            Projects
-                        </SectionTitle>
-                        {getSectionValue('projects', resumeData.projects).map((project, index) => (
-                            <Box key={index} sx={{ mb: 2 }}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'baseline',
-                                    mb: 0.5
-                                }}>
-                                    <Box>
-                                        <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
-                                            {project.name}
-                                        </CompanyName>
-                                        {project.role && (
-                                            <>
-                                                <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
-                                                <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
-                                                    {project.role}
-                                                </JobTitle>
-                                            </>
-                                        )}
-                                    </Box>
-                                </Box>
-                                <Typography variant="body2" sx={{
-                                    color: '#333',
-                                    fontSize: getFontSize(0.875),
-                                    fontWeight: getFontWeight(),
-                                    pl: 2,
-                                    position: 'relative',
-                                    '&::before': {
-                                        content: '"•"',
-                                        position: 'absolute',
-                                        left: 0,
-                                    }
-                                }}>
-                                    {project.description}
-                                </Typography>
-                            </Box>
-                        ))}
-                    </Section>
-                )}
-
-                {/* Education Section */}
-                {resumeData.config.sections.education && (
-                    <Section>
-                        <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
-                            Education
-                        </SectionTitle>
-                        {getSectionValue('education', resumeData.education).map((edu, index) => (
-                            <Box key={index} sx={{ mb: 1 }}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'baseline'
-                                }}>
-                                    <Box>
-                                        <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
-                                            {edu.institution}
-                                        </CompanyName>
-                                        {edu.degree && (
-                                            <>
-                                                <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
-                                                <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
-                                                    {edu.degree}
-                                                </JobTitle>
-                                            </>
-                                        )}
-                                    </Box>
-                                    <DateRange sx={{ fontSize: getFontSize(0.9) }}>
-                                        {edu.year}
-                                    </DateRange>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Section>
-                )}
-
-                {/* Skills Section */}
-                {resumeData.config.sections.skills && (
-                    <Section>
-                        <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
-                            Skills
-                        </SectionTitle>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {getSectionValue('skills', resumeData.skills).map((skill, idx) => (
-                                <Typography key={idx} variant="body2" sx={{
-                                    background: resumeData.config.style.primaryColor,
-                                    color: '#fff',
-                                    px: 2,
-                                    py: 0.5,
-                                    borderRadius: 2,
-                                    fontWeight: 500
-                                }}>
-                                    {skill}
-                                </Typography>
-                            ))}
                         </Box>
+
+                        {resumeData.config.sections.summary && (
+                            <Typography variant="body1" sx={{
+                                textAlign: 'center',
+                                color: '#333',
+                                fontFamily: 'League Spartan',
+                                fontSize: getFontSize(1),
+                                fontWeight: getFontWeight(),
+                                mt: 2,
+                                maxWidth: '80%',
+                                mx: 'auto'
+                            }}>
+                                {getSectionValue('summary', resumeData.summary)}
+                            </Typography>
+                        )}
                     </Section>
-                )}
-            </StyledPaper>
+
+                    {/* Experience Section */}
+                    {resumeData.config.sections.experience && (
+                        <Section>
+                            <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
+                                Experience
+                            </SectionTitle>
+                            {getSectionValue('experience', resumeData.experience).map((exp, index) => (
+                                <Box key={index} sx={{ mb: 2 }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'baseline',
+                                        mb: 0.5
+                                    }}>
+                                        <Box>
+                                            <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                {exp.company}
+                                            </CompanyName>
+                                            {exp.position && (
+                                                <>
+                                                    <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
+                                                    <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                        {exp.position}
+                                                    </JobTitle>
+                                                </>
+                                            )}
+                                        </Box>
+                                        <DateRange sx={{ fontSize: getFontSize(0.9) }}>
+                                            {formatExperienceDate(exp)}
+                                        </DateRange>
+                                    </Box>
+                                    <Typography variant="body2" sx={{
+                                        color: '#333',
+                                        fontSize: getFontSize(0.875),
+                                        fontWeight: getFontWeight(),
+                                        pl: 2,
+                                        position: 'relative',
+                                        '&::before': {
+                                            content: '"•"',
+                                            position: 'absolute',
+                                            left: 0,
+                                        }
+                                    }}>
+                                        {exp.description}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Projects Section */}
+                    {resumeData.config.sections.projects && getSectionValue('projects', resumeData.projects).length > 0 && (
+                        <Section>
+                            <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
+                                Projects
+                            </SectionTitle>
+                            {getSectionValue('projects', resumeData.projects).map((project, index) => (
+                                <Box key={index} sx={{ mb: 2 }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'baseline',
+                                        mb: 0.5
+                                    }}>
+                                        <Box>
+                                            <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                {project.name}
+                                            </CompanyName>
+                                            {project.role && (
+                                                <>
+                                                    <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
+                                                    <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                        {project.role}
+                                                    </JobTitle>
+                                                </>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                    <Typography variant="body2" sx={{
+                                        color: '#333',
+                                        fontSize: getFontSize(0.875),
+                                        fontWeight: getFontWeight(),
+                                        pl: 2,
+                                        position: 'relative',
+                                        '&::before': {
+                                            content: '"•"',
+                                            position: 'absolute',
+                                            left: 0,
+                                        }
+                                    }}>
+                                        {project.description}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Education Section */}
+                    {resumeData.config.sections.education && (
+                        <Section>
+                            <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
+                                Education
+                            </SectionTitle>
+                            {getSectionValue('education', resumeData.education).map((edu, index) => (
+                                <Box key={index} sx={{ mb: 1 }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'baseline'
+                                    }}>
+                                        <Box>
+                                            <CompanyName component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                {edu.institution}
+                                            </CompanyName>
+                                            {edu.degree && (
+                                                <>
+                                                    <Typography component="span" sx={{ mx: 0.5 }}>|</Typography>
+                                                    <JobTitle component="span" sx={{ fontWeight: getFontWeight() }}>
+                                                        {edu.degree}
+                                                    </JobTitle>
+                                                </>
+                                            )}
+                                        </Box>
+                                        <DateRange sx={{ fontSize: getFontSize(0.9) }}>
+                                            {edu.year}
+                                        </DateRange>
+                                    </Box>
+                                </Box>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Skills Section */}
+                    {resumeData.config.sections.skills && (
+                        <Section>
+                            <SectionTitle sx={{ color: resumeData.config.style.primaryColor }}>
+                                Skills
+                            </SectionTitle>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {getSectionValue('skills', resumeData.skills).map((skill, idx) => (
+                                    <Typography key={idx} variant="body2" sx={{
+                                        background: resumeData.config.style.primaryColor,
+                                        color: '#fff',
+                                        px: 2,
+                                        py: 0.5,
+                                        borderRadius: 2,
+                                        fontWeight: 500
+                                    }}>
+                                        {skill}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        </Section>
+                    )}
+                </StyledPaper>
+            </Box>
         </Box>
     );
 };
