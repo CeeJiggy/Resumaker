@@ -8,31 +8,30 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
-import '../styles/print.css';
 
 const StyledPaper = styled(Paper)(() => ({
     width: '8.5in',
     minHeight: '11in',
-    margin: '2rem auto',
-    padding: '1in',
+    margin: '0 auto',
+    padding: '3rem 1in 3rem 1in',
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     backgroundColor: '#fff',
     '@media screen and (max-width: 8.5in)': {
         width: '100%',
-        margin: '0 auto',
-        padding: '0.5in',
+        margin: '0 1rem',
+        padding: '2rem 0.5in',
         transform: 'scale(1)',
         transformOrigin: 'top center',
         minHeight: 'auto'
     },
     '@media print': {
         margin: 0,
-        padding: '0.5in',
+        padding: '0.75in 0.75in',
         boxShadow: 'none',
         transform: 'none',
         '@page': {
             size: 'letter',
-            margin: '0.5in',
+            margin: 0
         },
     }
 }));
@@ -72,31 +71,8 @@ const JobTitle = styled(Typography)(() => ({
 }));
 
 const ResumePreview = ({ resumeData }) => {
-    const handleExportPDF = () => {
-        const element = document.getElementById('resume-preview');
-        const printButton = document.querySelector('.print-button');
-
-        // Save original styles
-        const originalMargin = element.style.margin;
-        const originalWidth = element.style.width;
-
-        // Temporarily set margin and width for perfect PDF alignment
-        element.style.margin = '0';
-        element.style.width = '8.5in';
-
-        if (printButton) {
-            printButton.style.display = 'none';
-        }
-
-        // Open the browser's print dialog
+    const handlePrint = () => {
         window.print();
-
-        // Restore styles
-        element.style.margin = originalMargin;
-        element.style.width = originalWidth;
-        if (printButton) {
-            printButton.style.display = 'block';
-        }
     };
 
     const formatPhoneNumber = (phoneNumber) => {
@@ -217,7 +193,7 @@ const ResumePreview = ({ resumeData }) => {
             <Button
                 variant="contained"
                 color="primary"
-                onClick={handleExportPDF}
+                onClick={handlePrint}
                 startIcon={<PrintIcon />}
                 className="print-button"
                 sx={{
@@ -227,20 +203,10 @@ const ResumePreview = ({ resumeData }) => {
                     }
                 }}
             >
-                Export PDF
+                Print Resume
             </Button>
 
-            <StyledPaper id="resume-preview" sx={{
-                '@media print': {
-                    '&::before, &::after': {
-                        display: 'none !important',
-                    },
-                    '& *': {
-                        '-webkit-print-color-adjust': 'exact',
-                        'print-color-adjust': 'exact',
-                    },
-                }
-            }}>
+            <StyledPaper id="resume-preview">
                 {/* Header Section */}
                 <Section>
                     <Typography variant="h3" sx={{
@@ -251,6 +217,8 @@ const ResumePreview = ({ resumeData }) => {
                         color: '#333',
                         mb: 0.5
                     }}>
+
+
                         {resumeData.personalInfo.name}
                     </Typography>
                     <Box sx={{
@@ -341,6 +309,7 @@ const ResumePreview = ({ resumeData }) => {
                         </Typography>
                     )}
                 </Section>
+
 
                 {/* Experience Section */}
                 {resumeData.config.sections.experience && (
