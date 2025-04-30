@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Button,
@@ -11,6 +11,7 @@ import {
     Select,
     MenuItem,
     Stack,
+    CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -18,9 +19,19 @@ import AddIcon from '@mui/icons-material/Add';
 import { savePreset } from '../services/firestore';
 import SavePresetModal from './SavePresetModal';
 
-const Skills = ({ skills, onUpdate, user, presets = [] }) => {
+const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPreset, setSelectedPreset] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Initialize selectedPreset from resumeData when presets are loaded
+    useEffect(() => {
+        if (presets.length > 0) {
+            const currentPreset = resumeData.config.selectedPresets?.skills || presets[0].name;
+            setSelectedPreset(currentPreset);
+            setIsLoading(false);
+        }
+    }, [presets, resumeData.config.selectedPresets]);
 
     const handleSavePreset = async (presetName) => {
         const preset = {
@@ -75,19 +86,26 @@ const Skills = ({ skills, onUpdate, user, presets = [] }) => {
                         value={selectedPreset}
                         onChange={handlePresetSelect}
                         label="Select Preset"
+                        disabled={isLoading}
                     >
-                        {presets.map((preset) => (
-                            <MenuItem key={preset.name} value={preset.name}>
-                                {preset.name}
+                        {isLoading ? (
+                            <MenuItem value="">
+                                <CircularProgress size={20} />
                             </MenuItem>
-                        ))}
+                        ) : (
+                            presets.map((preset) => (
+                                <MenuItem key={preset.name} value={preset.name}>
+                                    {preset.name}
+                                </MenuItem>
+                            ))
+                        )}
                     </Select>
                 </FormControl>
                 <Button
                     variant="outlined"
                     onClick={() => setIsModalOpen(true)}
                     startIcon={<SaveIcon />}
-                    disabled={!user}
+                    disabled={!user || isLoading}
                 >
                     Save as Preset
                 </Button>

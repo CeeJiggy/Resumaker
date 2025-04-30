@@ -34,7 +34,45 @@ import Education from './Education';
 import Projects from './Projects';
 import Skills from './Skills';
 import Summary from './Summary';
-import { getAllPresets } from '../services/firestore';
+import { getAllPresets, savePreset } from '../services/firestore';
+
+const sectionKeys = [
+    { key: 'summary', label: 'Professional Summary' },
+    { key: 'experience', label: 'Jobs' },
+    { key: 'projects', label: 'Projects' },
+    { key: 'education', label: 'Education' },
+    { key: 'skills', label: 'Skills' }
+];
+
+const getDefaultPresetForSection = (key) => {
+    switch (key) {
+        case 'skills':
+            return [''];
+        case 'experience':
+            return [{
+                company: '',
+                position: '',
+                startDate: { month: '', year: '' },
+                endDate: { month: '', year: '' },
+                isCurrentJob: false,
+                description: ''
+            }];
+        case 'education':
+            return [{
+                institution: '',
+                degree: '',
+                year: ''
+            }];
+        case 'projects':
+            return [{
+                name: '',
+                role: '',
+                description: ''
+            }];
+        default:
+            return '';
+    }
+};
 
 const MONTHS = [
     { value: '', label: 'No Month' },
@@ -84,15 +122,52 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
         const loadPresets = async () => {
             if (user) {
                 try {
-                    const allPresets = await getAllPresets(user.uid);
-                    setSectionPresets(allPresets || {});
+                    let allPresets = await getAllPresets(user.uid);
+
+                    // If no presets exist, create default presets
+                    if (!allPresets || Object.keys(allPresets).length === 0) {
+                        allPresets = {};
+                        // Create default presets for each section
+                        for (const { key } of sectionKeys) {
+                            const defaultPreset = {
+                                name: 'Default',
+                                value: getDefaultPresetForSection(key)
+                            };
+                            await savePreset(user.uid, key, defaultPreset);
+                            allPresets[key] = [defaultPreset];
+                        }
+                    }
+
+                    setSectionPresets(allPresets);
+
+                    // Ensure default selections are set in the form
+                    const currentSelectedPresets = resumeData.config.selectedPresets || {};
+                    const newSelectedPresets = { ...currentSelectedPresets };
+                    let hasChanges = false;
+
+                    sectionKeys.forEach(({ key }) => {
+                        if (!currentSelectedPresets[key]) {
+                            newSelectedPresets[key] = 'Default';
+                            hasChanges = true;
+                        }
+                    });
+
+                    if (hasChanges) {
+                        onUpdateResume({
+                            ...resumeData,
+                            config: {
+                                ...resumeData.config,
+                                selectedPresets: newSelectedPresets
+                            }
+                        });
+                    }
                 } catch (error) {
                     console.error('Error loading presets:', error);
                 }
             }
         };
         loadPresets();
-    }, [user]);
+    }, [user?.uid]);
 
     const handleTabChange = (event, newValue) => {
         setCurrentTab(newValue);

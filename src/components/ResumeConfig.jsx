@@ -124,7 +124,7 @@ const ResumeConfig = ({ resumeData, onUpdateResume, user }) => {
         };
 
         initializePresets();
-    }, [user?.uid]);
+    }, [user?.uid, resumeData.config.selectedPresets]);
 
     // Handle preset selection
     const handlePresetSelect = (sectionKey, presetName) => {
