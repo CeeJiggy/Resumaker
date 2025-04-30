@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Paper,
     Typography,
     Button,
     Box,
     Link,
+    Grid,
+    Divider,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
+import { getAllPresets } from '../services/firestore';
 
 const StyledPaper = styled(Paper)(() => ({
     width: '8.5in',
     minHeight: '11in',
-    padding: '3rem 1in 3rem 1in',
+    padding: '0.75in 0.75in',
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     backgroundColor: '#fff',
     transformOrigin: 'center',
@@ -20,12 +23,12 @@ const StyledPaper = styled(Paper)(() => ({
     left: '50%',
     top: '50%',
     transform: 'translate(-50%, -50%)',
-    fontFamily: 'League Spartan',
+    fontFamily: 'League Spartan, sans-serif',
     '& .MuiTypography-root': {
-        fontFamily: 'League Spartan'
+        fontFamily: 'League Spartan, sans-serif'
     },
     '& .MuiButton-root': {
-        fontFamily: 'League Spartan'
+        fontFamily: 'League Spartan, sans-serif'
     },
     '@media screen and (max-width: 1000px)': {
         transform: 'translate(-50%, -50%) scale(0.8)',
@@ -54,10 +57,11 @@ const StyledPaper = styled(Paper)(() => ({
 
 const Section = styled(Box)(() => ({
     marginBottom: '1.5rem',
+    fontFamily: 'League Spartan, sans-serif',
 }));
 
 const SectionTitle = styled(Typography)(() => ({
-    fontFamily: 'League Spartan',
+    fontFamily: 'League Spartan, sans-serif',
     color: '#0095D8',
     fontSize: '1.2rem',
     fontWeight: 600,
@@ -66,7 +70,7 @@ const SectionTitle = styled(Typography)(() => ({
 }));
 
 const DateRange = styled(Typography)(() => ({
-    fontFamily: 'League Spartan',
+    fontFamily: 'League Spartan, sans-serif',
     color: '#666',
     fontSize: '0.9rem',
     fontWeight: 500,
@@ -74,22 +78,34 @@ const DateRange = styled(Typography)(() => ({
 }));
 
 const CompanyName = styled(Typography)(() => ({
-    fontFamily: 'League Spartan',
+    fontFamily: 'League Spartan, sans-serif',
     fontSize: '1rem',
     fontWeight: 600,
 }));
 
 const JobTitle = styled(Typography)(() => ({
-    fontFamily: 'League Spartan',
+    fontFamily: 'League Spartan, sans-serif',
     fontSize: '1rem',
     fontWeight: 500,
     fontStyle: 'italic',
 }));
 
-const ResumePreview = ({ resumeData }) => {
-    const handlePrint = () => {
-        window.print();
-    };
+const ResumePreview = ({ resumeData, user }) => {
+    const [sectionPresets, setSectionPresets] = useState({});
+
+    useEffect(() => {
+        const loadPresets = async () => {
+            if (user) {
+                try {
+                    const allPresets = await getAllPresets(user.uid);
+                    setSectionPresets(allPresets);
+                } catch (error) {
+                    console.error('Error loading presets:', error);
+                }
+            }
+        };
+        loadPresets();
+    }, [user]);
 
     const formatPhoneNumber = (phoneNumber) => {
         // Remove all non-numeric characters
@@ -160,25 +176,21 @@ const ResumePreview = ({ resumeData }) => {
         return startDate || endDate ? `${startDate} - ${endDate}` : '';
     };
 
-    // Helper to get the value for a section, using preset if selected
     const getSectionValue = (sectionKey, defaultValue) => {
         const selected = resumeData.config.selectedPresets?.[sectionKey];
         if (selected && selected !== 'current') {
-            const stored = localStorage.getItem(`presets-${sectionKey}`);
-            if (stored) {
-                const preset = JSON.parse(stored).find(p => p.name === selected);
-                if (preset) {
-                    let value = preset.value;
-                    if (sectionKey === 'skills') {
-                        if (typeof value === 'string') {
-                            value = value.split(',').map(s => s.trim()).filter(Boolean);
-                        }
-                        if (!Array.isArray(value)) {
-                            value = [];
-                        }
+            const preset = sectionPresets?.[sectionKey]?.find(p => p.name === selected);
+            if (preset) {
+                let value = preset.value;
+                if (sectionKey === 'skills') {
+                    if (typeof value === 'string') {
+                        value = value.split(',').map(s => s.trim()).filter(Boolean);
                     }
-                    return value;
+                    if (!Array.isArray(value)) {
+                        value = [];
+                    }
                 }
+                return value;
             }
         }
         return defaultValue;
@@ -193,7 +205,7 @@ const ResumePreview = ({ resumeData }) => {
             position: 'relative',
             overflow: 'hidden',
             height: 'calc(11in + 5rem)',
-            paddingTop: '3.5rem',
+            // paddingTop: '3.5rem',
             '@media screen': {
                 mx: 'auto',
                 px: { xs: 0, sm: 0 },
@@ -217,25 +229,6 @@ const ResumePreview = ({ resumeData }) => {
                 overflow: 'visible'
             }
         }}>
-            <Button
-                variant="contained"
-                color="primary"
-                onClick={handlePrint}
-                startIcon={<PrintIcon />}
-                className="print-button"
-                sx={{
-                    position: 'absolute',
-                    top: '1rem',
-                    zIndex: 1,
-                    boxShadow: 3,
-                    '@media print': {
-                        display: 'none !important'
-                    }
-                }}
-            >
-                Print Resume
-            </Button>
-
             <Box sx={{
                 position: 'relative',
                 height: '100%',

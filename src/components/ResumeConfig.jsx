@@ -15,9 +15,11 @@ import {
     Select,
     MenuItem,
     InputLabel,
+    CircularProgress,
 } from '@mui/material';
 import { MuiColorInput } from 'mui-color-input';
 import { styled } from '@mui/material/styles';
+import { getAllPresets, savePreset } from '../services/firestore';
 
 const ConfigSection = styled(Box)(({ theme }) => ({
     marginBottom: theme.spacing(4),
@@ -25,27 +27,106 @@ const ConfigSection = styled(Box)(({ theme }) => ({
 
 const sectionKeys = [
     { key: 'summary', label: 'Professional Summary' },
-    { key: 'experience', label: 'Experience' },
-    { key: 'education', label: 'Education' },
-    { key: 'skills', label: 'Skills' },
+    { key: 'experience', label: 'Jobs' },
     { key: 'projects', label: 'Projects' },
+    { key: 'education', label: 'Education' },
+    { key: 'skills', label: 'Skills' }
 ];
 
-const ResumeConfig = ({ resumeData, onUpdateResume }) => {
-    // State for loaded presets for each section
+const getDefaultPresetForSection = (key) => {
+    switch (key) {
+        case 'skills':
+            return [''];
+        case 'experience':
+            return [{
+                company: '',
+                position: '',
+                startDate: { month: '', year: '' },
+                endDate: { month: '', year: '' },
+                isCurrentJob: false,
+                description: ''
+            }];
+        case 'education':
+            return [{
+                institution: '',
+                degree: '',
+                year: ''
+            }];
+        case 'projects':
+            return [{
+                name: '',
+                role: '',
+                description: ''
+            }];
+        default:
+            return '';
+    }
+};
+
+const ResumeConfig = ({ resumeData, onUpdateResume, user }) => {
     const [sectionPresets, setSectionPresets] = useState({});
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Load presets from localStorage for each section
+    // Load presets from Firestore for each section
     useEffect(() => {
-        const newSectionPresets = {};
-        sectionKeys.forEach(({ key }) => {
-            const stored = localStorage.getItem(`presets-${key}`);
-            newSectionPresets[key] = stored ? JSON.parse(stored) : [];
-        });
-        setSectionPresets(newSectionPresets);
-    }, []);
+        if (!user) {
+            setIsLoading(false);
+            return;
+        }
 
-    // Handle preset selection (update config.selectedPresets only)
+        const initializePresets = async () => {
+            try {
+                setIsLoading(true);
+                let allPresets = await getAllPresets(user.uid);
+
+                // If no presets exist, create default presets
+                if (!allPresets || Object.keys(allPresets).length === 0) {
+                    allPresets = {};
+                    // Create default presets for each section
+                    for (const { key } of sectionKeys) {
+                        const defaultPreset = {
+                            name: 'Default',
+                            value: getDefaultPresetForSection(key)
+                        };
+                        await savePreset(user.uid, key, defaultPreset);
+                        allPresets[key] = [defaultPreset];
+                    }
+                }
+
+                setSectionPresets(allPresets);
+
+                // Ensure default selections are set
+                const currentSelectedPresets = resumeData.config.selectedPresets || {};
+                const newSelectedPresets = { ...currentSelectedPresets };
+                let hasChanges = false;
+
+                sectionKeys.forEach(({ key }) => {
+                    if (!currentSelectedPresets[key]) {
+                        newSelectedPresets[key] = 'Default';
+                        hasChanges = true;
+                    }
+                });
+
+                if (hasChanges) {
+                    onUpdateResume({
+                        ...resumeData,
+                        config: {
+                            ...resumeData.config,
+                            selectedPresets: newSelectedPresets
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing presets:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializePresets();
+    }, [user?.uid]);
+
+    // Handle preset selection
     const handlePresetSelect = (sectionKey, presetName) => {
         const newSelectedPresets = {
             ...(resumeData.config.selectedPresets || {}),
@@ -79,8 +160,17 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
         handleConfigChange('style', 'primaryColor', newColor);
     };
 
+    // Render loading state
+    if (isLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
     return (
-        <Box >
+        <Box>
             <Typography variant="h6" gutterBottom>
                 Resume Configuration
             </Typography>
@@ -107,24 +197,21 @@ const ResumeConfig = ({ resumeData, onUpdateResume }) => {
                                     label={label}
                                     sx={{ minWidth: { xs: 0, sm: 200 }, m: 0, width: { xs: '100%', sm: 'auto' } }}
                                 />
-                                {resumeData.config.sections[key] ? (
+                                {resumeData.config.sections[key] && (
                                     <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 220 }, maxWidth: { xs: '100%', sm: 240 }, width: '100%' }}>
                                         <InputLabel>{label} Preset</InputLabel>
                                         <Select
-                                            value={(resumeData.config.selectedPresets && resumeData.config.selectedPresets[key]) || 'current'}
+                                            value={(resumeData.config.selectedPresets?.[key]) || 'Default'}
                                             label={`${label} Preset`}
                                             onChange={(e) => handlePresetSelect(key, e.target.value)}
                                         >
-                                            <MenuItem value="current">Current</MenuItem>
-                                            {sectionPresets[key]?.map((preset) => (
+                                            {(sectionPresets[key] || []).map((preset) => (
                                                 <MenuItem key={preset.name} value={preset.name}>
                                                     {preset.name}
                                                 </MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
-                                ) : (
-                                    <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
                                 )}
                             </React.Fragment>
                         ))}

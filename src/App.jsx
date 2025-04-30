@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import ResumeForm from './components/ResumeForm'
 import ResumePreview from './components/ResumePreview'
-import { Button } from '@mui/material'
+import { Button, Typography, Stack } from '@mui/material'
+import { signInWithGoogle, logout, onAuthStateChange } from './services/auth'
+import { getResume, saveResume, getPresets, savePreset } from './services/firestore'
+import PrintIcon from '@mui/icons-material/Print'
 
 const theme = createTheme({
   palette: {
@@ -17,6 +20,7 @@ const theme = createTheme({
     },
   },
   typography: {
+    fontFamily: 'League Spartan, sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 600,
@@ -25,6 +29,44 @@ const theme = createTheme({
       fontSize: '1.75rem',
       fontWeight: 600,
       color: '#0095D8',
+    },
+    button: {
+      fontFamily: 'League Spartan, sans-serif',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: 'League Spartan, sans-serif',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiInputBase-root': {
+            fontFamily: 'League Spartan, sans-serif',
+          },
+          '& .MuiInputLabel-root': {
+            fontFamily: 'League Spartan, sans-serif',
+          },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          fontFamily: 'League Spartan, sans-serif',
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          fontFamily: 'League Spartan, sans-serif',
+        },
+      },
     },
   },
 })
@@ -55,6 +97,13 @@ const initialResumeData = {
         showZip: false,
         showCountry: false
       }
+    },
+    selectedPresets: {
+      summary: 'Default',
+      experience: 'Default',
+      education: 'Default',
+      skills: 'Default',
+      projects: 'Default'
     }
   },
   personalInfo: {
@@ -106,96 +155,242 @@ const initialResumeData = {
 }
 
 function App() {
-  const [resumeData, setResumeData] = useState(() => {
-    const savedData = localStorage.getItem('resumeData')
-    if (savedData) {
-      const parsedData = JSON.parse(savedData)
-
-      // Convert old experience format to new format if necessary
-      const migratedExperience = parsedData.experience?.map(exp => {
-        if (exp.duration && !exp.startDate) {
-          // If we have old format with just duration, create empty date structure
-          return {
-            ...exp,
-            startDate: { month: '', year: '' },
-            endDate: { month: '', year: '' },
-            isCurrentJob: exp.duration?.toLowerCase().includes('present'),
-            duration: undefined // Remove old duration field
-          }
-        }
-        return {
-          ...exp,
-          startDate: exp.startDate || { month: '', year: '' },
-          endDate: exp.endDate || { month: '', year: '' },
-          isCurrentJob: exp.isCurrentJob || false
-        }
-      }) || []
-
-      // Ensure all config properties exist by merging with initial config
-      return {
-        ...initialResumeData,
-        ...parsedData,
-        experience: migratedExperience,
-        config: {
-          ...initialResumeData.config,
-          ...parsedData.config,
-          sections: {
-            ...initialResumeData.config.sections,
-            ...(parsedData.config?.sections || {})
-          },
-          style: {
-            ...initialResumeData.config.style,
-            ...(parsedData.config?.style || {})
-          },
-          contact: {
-            ...initialResumeData.config.contact,
-            ...(parsedData.config?.contact || {})
-          }
-        }
-      }
-    }
-    return initialResumeData
-  })
-
-  const [isPreview, setIsPreview] = useState(false)
+  const [user, setUser] = useState(null);
+  const [resumeData, setResumeData] = useState(initialResumeData);
+  const [isPreview, setIsPreview] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('resumeData', JSON.stringify(resumeData))
-  }, [resumeData])
+    const unsubscribe = onAuthStateChange((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      const loadResumeData = async () => {
+        try {
+          const savedData = await getResume(user.uid);
+          if (savedData) {
+            setResumeData(savedData);
+
+            // Create default presets if they don't exist
+            const sections = ['summary', 'experience', 'education', 'skills', 'projects'];
+            for (const section of sections) {
+              const presets = await getPresets(user.uid, section);
+              if (!presets || presets.length === 0) {
+                const defaultPreset = {
+                  name: 'Default',
+                  value: section === 'skills' ? [''] : section === 'experience' ? [{
+                    company: '',
+                    position: '',
+                    startDate: { month: '', year: '' },
+                    endDate: { month: '', year: '' },
+                    isCurrentJob: false,
+                    description: ''
+                  }] : section === 'education' ? [{
+                    institution: '',
+                    degree: '',
+                    year: ''
+                  }] : section === 'projects' ? [{
+                    name: '',
+                    role: '',
+                    description: ''
+                  }] : ''
+                };
+                await savePreset(user.uid, section, defaultPreset);
+              }
+            }
+          } else {
+            // If no saved data exists, create default presets
+            const sections = ['summary', 'experience', 'education', 'skills', 'projects'];
+            for (const section of sections) {
+              const defaultPreset = {
+                name: 'Default',
+                value: section === 'skills' ? [''] : section === 'experience' ? [{
+                  company: '',
+                  position: '',
+                  startDate: { month: '', year: '' },
+                  endDate: { month: '', year: '' },
+                  isCurrentJob: false,
+                  description: ''
+                }] : section === 'education' ? [{
+                  institution: '',
+                  degree: '',
+                  year: ''
+                }] : section === 'projects' ? [{
+                  name: '',
+                  role: '',
+                  description: ''
+                }] : ''
+              };
+              await savePreset(user.uid, section, defaultPreset);
+            }
+            setResumeData(initialResumeData);
+          }
+        } catch (error) {
+          console.error('Error loading resume data:', error);
+        }
+      };
+      loadResumeData();
+    }
+  }, [user]);
 
   const handleUpdateResume = (newData) => {
-    setResumeData(newData)
-  }
+    setResumeData(newData);
+  };
+
+  const handleSaveToFirestore = useCallback(async (dataToSave) => {
+    if (user) {
+      try {
+        await saveResume(user.uid, dataToSave || resumeData);
+      } catch (error) {
+        console.error('Error saving resume data:', error);
+      }
+    }
+  }, [user, resumeData]);
 
   const togglePreview = () => {
-    setIsPreview(!isPreview)
+    setIsPreview(!isPreview);
+  };
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Error signing in:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      setResumeData(initialResumeData);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Container maxWidth="lg" sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Typography>Loading...</Typography>
+          </Box>
+        </Container>
+      </ThemeProvider>
+    );
   }
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="lg" sx={{ py: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Button
-            variant="contained"
-            onClick={togglePreview}
-            sx={{ mb: 2 }}
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <Typography variant="h4" fontWeight="bold" component="h1" sx={{
+            textAlign: 'center',
+            mb: 0,
+            '@media print': {
+              display: 'none'
+            }
+          }}>
+            RESUMAKER
+          </Typography>
+          <Stack
+            direction="row"
+            spacing={2}
+            flexWrap="wrap"
+            alignItems="center"
+            justifyContent="center"
+            sx={{
+              width: '100%',
+              minHeight: '48px',
+              top: 0,
+              mb: 2,
+              '@media print': {
+                display: 'none'
+              }
+            }}
+            className="no-print"
           >
-            {isPreview ? 'Back to Edit' : 'Preview Resume'}
-          </Button>
+            {user ? (
+              <Stack direction="row" flexWrap="wrap" sx={{ justifyContent: 'center' }} alignItems="center">
+                <Button
+                  variant="contained"
+                  onClick={togglePreview}
+                  color="primary"
+                  sx={{
+                    margin: '10px 10px',
+                    width: '140px'
+                  }}
+                >
+                  {isPreview ? 'Back to Edit' : 'Preview Resume'}
+                </Button>
+                {isPreview && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => window.print()}
+                    startIcon={<PrintIcon />}
+                    sx={{
+                      margin: '10px 10px',
+                    }}
+                  >
+                    Print Resume
+                  </Button>
+                )}
+                <Button
+                  variant="outlined"
+                  onClick={handleSignOut}
+                  sx={{
+                    margin: '10px 10px',
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </Stack>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleSignIn}
+              >
+                Sign In with Google
+              </Button>
+            )}
+          </Stack>
 
-          {isPreview ? (
-            <ResumePreview resumeData={resumeData} />
+          {user ? (
+            <Box sx={{ width: '100%' }}>
+              {isPreview ? (
+                <ResumePreview
+                  resumeData={resumeData}
+                  user={user}
+                />
+              ) : (
+                <ResumeForm
+                  resumeData={resumeData}
+                  onUpdateResume={handleUpdateResume}
+                  onSaveToFirestore={handleSaveToFirestore}
+                  user={user}
+                />
+              )}
+            </Box>
           ) : (
-            <ResumeForm
-              resumeData={resumeData}
-              onUpdateResume={handleUpdateResume}
-            />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+              <Typography variant="h5" align="center">
+                Please sign in to create and manage your resume.
+              </Typography>
+            </Box>
           )}
         </Box>
       </Container>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;

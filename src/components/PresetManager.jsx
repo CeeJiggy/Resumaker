@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Button,
@@ -15,10 +15,13 @@ import {
     Typography,
     Tooltip,
     Stack,
+    Snackbar,
+    Alert,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import { savePreset, getPresets, deletePreset } from '../services/firestore';
 
 /**
  * PresetManager Component
@@ -31,192 +34,260 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
  * @param {Function} props.onValueChange - Function to call when a preset is selected
  * @param {string} props.label - Label for the field (optional)
  * @param {string} props.placeholder - Placeholder for the save dialog (optional)
+ * @param {Object} props.user - Current user object
+ * @param {Function} props.onSaveToFirestore - Function to call when a preset is selected and needs to be saved to Firestore
+ * @param {Object} props.resumeData - Current resume data object
+ * @param {Function} props.onUpdateResume - Function to call when the resume data needs to be updated
  */
-function PresetManager({ fieldId, value, onValueChange, label, placeholder }) {
-    const [open, setOpen] = useState(false);
-    const [presetName, setPresetName] = useState('');
+const PresetManager = ({ fieldId, value, onValueChange, label, placeholder, user, onSaveToFirestore, resumeData, onUpdateResume }) => {
     const [presets, setPresets] = useState([]);
-    const [selectedPreset, setSelectedPreset] = useState('');
     const [hoveredPreset, setHoveredPreset] = useState(null);
-    const [hasLoaded, setHasLoaded] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
-    const [pendingPreset, setPendingPreset] = useState(null);
+    const [newPresetName, setNewPresetName] = useState('');
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    // Load presets from localStorage on component mount
     useEffect(() => {
-        const storedPresets = localStorage.getItem(`presets-${fieldId}`);
-        console.log('[PresetManager] Loading for', fieldId, ':', storedPresets);
-        if (storedPresets) {
-            setPresets(JSON.parse(storedPresets));
-        }
-        setHasLoaded(true);
-    }, [fieldId]);
+        loadPresets();
+    }, [user]);
 
-    // Save presets to localStorage only after initial load and state update
-    useEffect(() => {
-        if (hasLoaded) {
-            const current = localStorage.getItem(`presets-${fieldId}`);
-            const currentParsed = current ? JSON.parse(current) : [];
-            if (JSON.stringify(currentParsed) !== JSON.stringify(presets)) {
-                console.log('[PresetManager] Saving for', fieldId, ':', presets);
-                localStorage.setItem(`presets-${fieldId}`, JSON.stringify(presets));
+    const loadPresets = async () => {
+        if (user) {
+            try {
+                const allPresets = await getPresets(user.uid, fieldId);
+                setPresets(allPresets || []);
+
+                // If presets exist but none is selected, select the first one
+                if (allPresets?.length > 0 && !resumeData.config.selectedPresets?.[fieldId]) {
+                    const newSelectedPresets = {
+                        ...(resumeData.config.selectedPresets || {}),
+                        [fieldId]: allPresets[0].name
+                    };
+                    const newConfig = {
+                        ...resumeData.config,
+                        selectedPresets: newSelectedPresets
+                    };
+                    onUpdateResume({
+                        ...resumeData,
+                        config: newConfig
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading presets:', error);
+                setSnackbar({
+                    open: true,
+                    message: 'Error loading presets',
+                    severity: 'error'
+                });
             }
         }
-    }, [presets, fieldId, hasLoaded]);
-
-    const handleOpen = () => {
-        setOpen(true);
     };
 
-    const handleClose = () => {
-        setOpen(false);
-        setPresetName('');
-        setShowConfirm(false);
-        setPendingPreset(null);
-    };
+    const handleSavePreset = async () => {
+        if (!user) {
+            setSnackbar({
+                open: true,
+                message: 'Please sign in to save presets',
+                severity: 'error'
+            });
+            return;
+        }
 
-    const handlePresetNameChange = (e) => {
-        const name = e.target.value;
-        setPresetName(name);
-    };
+        if (!newPresetName || newPresetName.trim() === '') {
+            setSnackbar({
+                open: true,
+                message: 'Please enter a preset name',
+                severity: 'error'
+            });
+            return;
+        }
 
-    const handleSavePreset = () => {
-        if (presetName.trim() === '') return;
-        if (presets.some(p => p.name === presetName)) {
-            // Ask for confirmation to overwrite
-            setShowConfirm(true);
-            setPendingPreset({ name: presetName, value });
-        } else {
-            setPresets([...presets, { name: presetName, value }]);
-            handleClose();
+        try {
+            const newPreset = {
+                name: newPresetName.trim(),
+                value: value
+            };
+
+            await savePreset(user.uid, fieldId, newPreset);
+
+            setPresets(prevPresets => {
+                const newPresets = [...prevPresets];
+                const existingIndex = newPresets.findIndex(p => p.name === newPresetName.trim());
+                if (existingIndex >= 0) {
+                    newPresets[existingIndex] = newPreset;
+                } else {
+                    newPresets.push(newPreset);
+                }
+                return newPresets;
+            });
+
+            setNewPresetName('');
+            setSnackbar({
+                open: true,
+                message: 'Preset saved successfully',
+                severity: 'success'
+            });
+        } catch (error) {
+            console.error('Error saving preset:', error);
+            setSnackbar({
+                open: true,
+                message: 'Error saving preset. Please try again.',
+                severity: 'error'
+            });
         }
     };
 
-    const handleConfirmOverwrite = () => {
-        // Overwrite the existing preset
-        const updatedPresets = presets.map(p =>
-            p.name === pendingPreset.name ? { name: pendingPreset.name, value: pendingPreset.value } : p
-        );
-        setPresets(updatedPresets);
-        setShowConfirm(false);
-        setPendingPreset(null);
-        handleClose();
-    };
+    const handleDeletePreset = async (presetName) => {
+        if (!user) {
+            setSnackbar({
+                open: true,
+                message: 'Please sign in to delete presets',
+                severity: 'error'
+            });
+            return;
+        }
 
-    const handleCancelOverwrite = () => {
-        setShowConfirm(false);
-        setPendingPreset(null);
-    };
+        // Don't allow deleting the last preset
+        if (presets.length <= 1) {
+            setSnackbar({
+                open: true,
+                message: 'Cannot delete the last preset',
+                severity: 'error'
+            });
+            return;
+        }
 
-    const handleDeletePreset = (name) => {
-        setPresets(presets.filter(p => p.name !== name));
-        if (selectedPreset === name) {
-            setSelectedPreset('');
+        try {
+            await deletePreset(user.uid, fieldId, presetName);
+            setSnackbar({
+                open: true,
+                message: 'Preset deleted successfully',
+                severity: 'success'
+            });
+
+            // If the deleted preset was selected, select the first available preset
+            if (resumeData.config.selectedPresets?.[fieldId] === presetName) {
+                const newSelectedPresets = {
+                    ...resumeData.config.selectedPresets,
+                    [fieldId]: presets[0].name // Select the first preset
+                };
+                const newConfig = {
+                    ...resumeData.config,
+                    selectedPresets: newSelectedPresets
+                };
+                onUpdateResume({
+                    ...resumeData,
+                    config: newConfig
+                });
+            }
+            await loadPresets();
+        } catch (error) {
+            console.error('Error deleting preset:', error);
+            setSnackbar({
+                open: true,
+                message: 'Error deleting preset',
+                severity: 'error'
+            });
         }
     };
 
-    const handleSelectPreset = (event) => {
-        const name = event.target.value;
-        setSelectedPreset(name);
+    const handlePresetSelect = (event) => {
+        const selected = event.target.value;
 
-        if (name) {
-            const preset = presets.find(p => p.name === name);
-            if (preset) {
-                onValueChange(preset.value);
+        // Update the selected preset in resumeData config
+        const newSelectedPresets = {
+            ...resumeData.config.selectedPresets,
+            [fieldId]: selected
+        };
+        const newConfig = {
+            ...resumeData.config,
+            selectedPresets: newSelectedPresets
+        };
+        onUpdateResume({
+            ...resumeData,
+            config: newConfig
+        });
+
+        const preset = presets.find(p => p.name === selected);
+        if (preset) {
+            onValueChange(preset.value);
+            // Save the new value to Firestore
+            if (onSaveToFirestore) {
+                onSaveToFirestore();
             }
         }
     };
 
     return (
-        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" spacing={1} sx={{ mb: 1, flexWrap: 'wrap' }}>
-            {label && (
-                <Typography variant="body2" sx={{ minWidth: '110px', fontWeight: 500 }}>
-                    {label}
-                </Typography>
-            )}
-            <FormControl size="small" sx={{ minWidth: 170, maxWidth: 220 }}>
-                {/* <InputLabel>Presets</InputLabel> */}
-                <Select
-                    value={selectedPreset}
-                    onChange={handleSelectPreset}
-                    // label="Presets"
-                    displayEmpty
-                    size="small"
+        <Box sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+                <FormControl fullWidth>
+                    <InputLabel>{label || 'Presets'}</InputLabel>
+                    <Select
+                        value={resumeData.config.selectedPresets?.[fieldId] || presets[0]?.name}
+                        onChange={handlePresetSelect}
+                        label={label || 'Presets'}
+                    >
+                        {presets.map((preset) => (
+                            <MenuItem
+                                key={preset.name}
+                                value={preset.name}
+                                onMouseEnter={() => setHoveredPreset(preset.name)}
+                                onMouseLeave={() => setHoveredPreset(null)}
+                                sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <span>{preset.name}</span>
+                                {hoveredPreset === preset.name && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeletePreset(preset.name);
+                                        }}
+                                        sx={{
+                                            color: 'error.main',
+                                            ml: 1
+                                        }}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <TextField
+                    label="New Preset Name"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    placeholder={placeholder}
+                />
+                <Button
+                    variant="contained"
+                    onClick={handleSavePreset}
+                    disabled={!newPresetName.trim()}
                 >
-                    <MenuItem value="">
-                        <em>Select a preset</em>
-                    </MenuItem>
-                    {presets.map((preset) => (
-                        <MenuItem
-                            key={preset.name}
-                            value={preset.name}
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                pr: 0
-                            }}
-                            onMouseEnter={() => setHoveredPreset(preset.name)}
-                            onMouseLeave={() => setHoveredPreset(null)}
-                        >
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preset.name}</span>
-                            {hoveredPreset === preset.name && (
-                                <IconButton
-                                    size="small"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        handleDeletePreset(preset.name);
-                                    }}
-                                    sx={{ ml: 1 }}
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            )}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            <Tooltip title="Save as preset">
-                <IconButton onClick={handleOpen} color="primary" size="small" sx={{ ml: 0.5 }}>
-                    <SaveIcon fontSize="small" />
-                </IconButton>
-            </Tooltip>
-            <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>Save as Preset</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Preset Name"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={presetName}
-                        onChange={handlePresetNameChange}
-                        placeholder={placeholder || 'Enter a name for this preset'}
-                        size="small"
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} size="small">Cancel</Button>
-                    <Button onClick={handleSavePreset} variant="contained" size="small" disabled={presetName.trim() === ''}>Save</Button>
-                </DialogActions>
-            </Dialog>
-            {/* Overwrite confirmation dialog */}
-            <Dialog open={showConfirm} onClose={handleCancelOverwrite}>
-                <DialogTitle>Overwrite Preset?</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        A preset with the name "{pendingPreset?.name}" already exists. Do you want to overwrite it?
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCancelOverwrite} size="small">Cancel</Button>
-                    <Button onClick={handleConfirmOverwrite} variant="contained" size="small">Overwrite</Button>
-                </DialogActions>
-            </Dialog>
-        </Stack>
+                    Save Preset
+                </Button>
+            </Stack>
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Box>
     );
-}
+};
 
 export default PresetManager; 

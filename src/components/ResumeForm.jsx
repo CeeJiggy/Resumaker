@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme, useMediaQuery } from '@mui/material';
 import {
     Box,
@@ -22,7 +22,6 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ResumeConfig from './ResumeConfig';
-import PresetManager from './PresetManager';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -30,6 +29,12 @@ import WorkIcon from '@mui/icons-material/Work';
 import BuildIcon from '@mui/icons-material/Build';
 import SchoolIcon from '@mui/icons-material/School';
 import StarIcon from '@mui/icons-material/Star';
+import Experience from './Experience';
+import Education from './Education';
+import Projects from './Projects';
+import Skills from './Skills';
+import Summary from './Summary';
+import { getAllPresets } from '../services/firestore';
 
 const MONTHS = [
     { value: '', label: 'No Month' },
@@ -56,7 +61,7 @@ function TabPanel({ children, value, index, ...other }) {
             aria-labelledby={`resume-tab-${index}`}
             {...other}
             style={{
-                maxHeight: '75vh',
+                maxHeight: '70vh',
                 overflowY: 'auto',
             }}
         >
@@ -69,10 +74,25 @@ function TabPanel({ children, value, index, ...other }) {
     );
 }
 
-function ResumeForm({ resumeData, onUpdateResume }) {
+const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => {
     const [currentTab, setCurrentTab] = useState(0);
+    const [sectionPresets, setSectionPresets] = useState({});
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+
+    useEffect(() => {
+        const loadPresets = async () => {
+            if (user) {
+                try {
+                    const allPresets = await getAllPresets(user.uid);
+                    setSectionPresets(allPresets || {});
+                } catch (error) {
+                    console.error('Error loading presets:', error);
+                }
+            }
+        };
+        loadPresets();
+    }, [user]);
 
     const handleTabChange = (event, newValue) => {
         setCurrentTab(newValue);
@@ -83,21 +103,19 @@ function ResumeForm({ resumeData, onUpdateResume }) {
             ...resumeData,
             personalInfo: {
                 ...resumeData.personalInfo,
-                [field]: value,
-            },
+                [field]: value
+            }
         });
+    };
+
+    const handlePersonalInfoBlur = () => {
+        onSaveToFirestore(resumeData);
     };
 
     const handleExperienceChange = (index, field, value) => {
         const newExperience = [...resumeData.experience];
 
         if (field === 'startDate' || field === 'endDate') {
-            // For year inputs, only allow numbers and limit to 4 digits
-            if ('year' in value) {
-                const yearValue = value.year.replace(/\D/g, '').slice(0, 4);
-                value = { ...value, year: yearValue };
-            }
-
             newExperience[index] = {
                 ...newExperience[index],
                 [field]: {
@@ -117,117 +135,160 @@ function ResumeForm({ resumeData, onUpdateResume }) {
 
         onUpdateResume({
             ...resumeData,
-            experience: newExperience,
+            experience: newExperience
         });
+    };
+
+    const handleExperienceBlur = () => {
+        onSaveToFirestore(resumeData);
     };
 
     const handleEducationChange = (index, field, value) => {
         const newEducation = [...resumeData.education];
         newEducation[index] = {
             ...newEducation[index],
-            [field]: value,
+            [field]: value
         };
         onUpdateResume({
             ...resumeData,
-            education: newEducation,
+            education: newEducation
         });
+    };
+
+    const handleEducationBlur = () => {
+        onSaveToFirestore(resumeData);
     };
 
     const handleProjectChange = (index, field, value) => {
         const newProjects = [...resumeData.projects];
         newProjects[index] = {
             ...newProjects[index],
-            [field]: value,
+            [field]: value
         };
         onUpdateResume({
             ...resumeData,
-            projects: newProjects,
+            projects: newProjects
         });
     };
 
-    const handleSkillChange = (index, value) => {
+    const handleProjectBlur = () => {
+        onSaveToFirestore(resumeData);
+    };
+
+    const handleSkillsChange = (index, value) => {
         const newSkills = [...resumeData.skills];
         newSkills[index] = value;
         onUpdateResume({
             ...resumeData,
-            skills: newSkills,
+            skills: newSkills
         });
+    };
+
+    const removeSkill = (index) => {
+        const newSkills = [...resumeData.skills];
+        newSkills.splice(index, 1);
+        if (newSkills.length === 0) {
+            newSkills.push('');
+        }
+        // Create new resume data with updated skills
+        const updatedResumeData = {
+            ...resumeData,
+            skills: newSkills
+        };
+        // Update state and then save to Firestore
+        onUpdateResume(updatedResumeData);
+        // Use the updated data directly when saving to Firestore
+        onSaveToFirestore(updatedResumeData);
+    };
+
+    const addSkill = () => {
+        onUpdateResume({
+            ...resumeData,
+            skills: [...resumeData.skills, '']
+        });
+    };
+
+    const handleSkillBlur = () => {
+        onSaveToFirestore(resumeData);
     };
 
     const addExperience = () => {
         onUpdateResume({
             ...resumeData,
-            experience: [
-                ...resumeData.experience,
-                {
-                    company: '',
-                    position: '',
-                    startDate: { month: '', year: '' },
-                    endDate: { month: '', year: '' },
-                    isCurrentJob: false,
-                    description: ''
-                },
-            ],
+            experience: [...resumeData.experience, {
+                company: '',
+                position: '',
+                startDate: { month: '', year: '' },
+                endDate: { month: '', year: '' },
+                isCurrentJob: false,
+                description: ''
+            }]
         });
     };
 
     const addEducation = () => {
         onUpdateResume({
             ...resumeData,
-            education: [
-                ...resumeData.education,
-                { institution: '', degree: '', year: '' },
-            ],
+            education: [...resumeData.education, {
+                institution: '',
+                degree: '',
+                year: ''
+            }]
         });
     };
 
     const addProject = () => {
         onUpdateResume({
             ...resumeData,
-            projects: [
-                ...resumeData.projects,
-                { name: '', role: '', description: '' },
-            ],
+            projects: [...resumeData.projects, {
+                name: '',
+                role: '',
+                description: ''
+            }]
         });
     };
 
-    const addSkill = () => {
-        onUpdateResume({
-            ...resumeData,
-            skills: [...resumeData.skills, ''],
-        });
+    const handleUpdate = (action) => {
+        let newResumeData = { ...resumeData };
+
+        switch (action.type) {
+            case 'UPDATE_EXPERIENCE':
+                newResumeData.experience = action.value;
+                break;
+            case 'UPDATE_EDUCATION':
+                newResumeData.education = action.value;
+                break;
+            case 'UPDATE_PROJECTS':
+                newResumeData.projects = action.value;
+                break;
+            case 'UPDATE_SKILLS':
+                newResumeData.skills = action.value;
+                break;
+            case 'UPDATE_SUMMARY':
+                newResumeData.summary = action.value;
+                break;
+            case 'REFRESH_PRESETS':
+                // Reload presets when a new preset is saved
+                loadPresets();
+                return;
+            default:
+                console.warn('Unknown action type:', action.type);
+                return;
+        }
+
+        onUpdateResume(newResumeData);
+        onSaveToFirestore(newResumeData);
     };
 
-    const removeExperience = (index) => {
-        const newExperience = resumeData.experience.filter((_, i) => i !== index);
-        onUpdateResume({
-            ...resumeData,
-            experience: newExperience,
-        });
-    };
-
-    const removeEducation = (index) => {
-        const newEducation = resumeData.education.filter((_, i) => i !== index);
-        onUpdateResume({
-            ...resumeData,
-            education: newEducation,
-        });
-    };
-
-    const removeProject = (index) => {
-        const newProjects = resumeData.projects.filter((_, i) => i !== index);
-        onUpdateResume({
-            ...resumeData,
-            projects: newProjects,
-        });
-    };
-
-    const removeSkill = (index) => {
-        const newSkills = resumeData.skills.filter((_, i) => i !== index);
-        onUpdateResume({
-            ...resumeData,
-            skills: newSkills,
-        });
+    const loadPresets = async () => {
+        if (user) {
+            try {
+                const allPresets = await getAllPresets(user.uid);
+                setSectionPresets(allPresets || {});
+            } catch (error) {
+                console.error('Error loading presets:', error);
+            }
+        }
     };
 
     return (
@@ -315,6 +376,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                 <ResumeConfig
                     resumeData={resumeData}
                     onUpdateResume={onUpdateResume}
+                    user={user}
                 />
             </TabPanel>
 
@@ -326,24 +388,28 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                         label="Full Name"
                         value={resumeData.personalInfo.name}
                         onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
+                        onBlur={handlePersonalInfoBlur}
                     />
                     <TextField
                         fullWidth
                         label="Email"
                         value={resumeData.personalInfo.email}
                         onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
+                        onBlur={handlePersonalInfoBlur}
                     />
                     <TextField
                         fullWidth
                         label="Phone"
                         value={resumeData.personalInfo.phone}
                         onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
+                        onBlur={handlePersonalInfoBlur}
                     />
                     <TextField
                         fullWidth
                         label="Website"
                         value={resumeData.personalInfo.website}
                         onChange={(e) => handlePersonalInfoChange('website', e.target.value)}
+                        onBlur={handlePersonalInfoBlur}
                         placeholder="https://your-website.com"
                     />
                     <Typography variant="subtitle1" gutterBottom>
@@ -354,12 +420,14 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                         label="Street Address"
                         value={resumeData.personalInfo.location.street}
                         onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, street: e.target.value })}
+                        onBlur={handlePersonalInfoBlur}
                     />
                     <TextField
                         fullWidth
                         label="Apartment/Suite"
                         value={resumeData.personalInfo.location.apt}
                         onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, apt: e.target.value })}
+                        onBlur={handlePersonalInfoBlur}
                     />
                     <Grid container spacing={2}>
                         <Grid item xs={6}>
@@ -368,6 +436,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                                 label="City"
                                 value={resumeData.personalInfo.location.city}
                                 onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, city: e.target.value })}
+                                onBlur={handlePersonalInfoBlur}
                             />
                         </Grid>
                         <Grid item xs={6}>
@@ -376,6 +445,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                                 label="State/Province"
                                 value={resumeData.personalInfo.location.state}
                                 onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, state: e.target.value })}
+                                onBlur={handlePersonalInfoBlur}
                             />
                         </Grid>
                     </Grid>
@@ -386,6 +456,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                                 label="ZIP/Postal Code"
                                 value={resumeData.personalInfo.location.zip}
                                 onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, zip: e.target.value })}
+                                onBlur={handlePersonalInfoBlur}
                             />
                         </Grid>
                         <Grid item xs={6}>
@@ -394,6 +465,7 @@ function ResumeForm({ resumeData, onUpdateResume }) {
                                 label="Country"
                                 value={resumeData.personalInfo.location.country}
                                 onChange={(e) => handlePersonalInfoChange('location', { ...resumeData.personalInfo.location, country: e.target.value })}
+                                onBlur={handlePersonalInfoBlur}
                             />
                         </Grid>
                     </Grid>
@@ -402,261 +474,57 @@ function ResumeForm({ resumeData, onUpdateResume }) {
 
             {/* Professional Summary Tab */}
             <TabPanel value={currentTab} index={2}>
-                <PresetManager
-                    fieldId="summary"
-                    value={resumeData.summary}
-                    onValueChange={(value) => onUpdateResume({ ...resumeData, summary: value })}
-                    label="Summary Presets"
-                    placeholder="Enter a name for this summary preset"
-                />
-                <TextField
-                    label="Professional Summary"
-                    value={resumeData.summary}
-                    onChange={(e) => onUpdateResume({ ...resumeData, summary: e.target.value })}
-                    fullWidth
-                    multiline
-                    rows={4}
-                    placeholder="Brief overview of your professional background and goals"
+                <Summary
+                    summary={resumeData.summary}
+                    onUpdate={handleUpdate}
+                    user={user}
+                    presets={sectionPresets.summary || []}
+                    resumeData={resumeData}
                 />
             </TabPanel>
 
             {/* Experience Tab */}
             <TabPanel value={currentTab} index={3}>
-                <PresetManager
-                    fieldId="experience"
-                    value={resumeData.experience}
-                    onValueChange={(value) => onUpdateResume({ ...resumeData, experience: value })}
-                    label="Experience Presets"
-                    placeholder="Enter a name for this experience preset"
+                <Experience
+                    experience={resumeData.experience}
+                    onUpdate={handleUpdate}
+                    user={user}
+                    presets={sectionPresets.experience || []}
+                    resumeData={resumeData}
                 />
-                {resumeData.experience.map((exp, index) => (
-                    <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
-                            <TextField
-                                label="Company"
-                                value={exp.company}
-                                onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
-                                fullWidth
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
-                                <TextField
-                                    label="Position"
-                                    value={exp.position}
-                                    onChange={(e) => handleExperienceChange(index, 'position', e.target.value)}
-                                    fullWidth
-                                />
-                                <IconButton
-                                    onClick={() => removeExperience(index)}
-                                    sx={{ mt: 1 }}
-                                    size="small"
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Start Month</InputLabel>
-                                    <Select
-                                        label="Start Month"
-                                        value={exp.startDate?.month || ''}
-                                        onChange={(e) => handleExperienceChange(index, 'startDate', { month: e.target.value })}
-                                    >
-                                        {MONTHS.map((month) => (
-                                            <MenuItem key={month.value} value={month.value}>
-                                                {month.label}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                                <TextField
-                                    label="Start Year"
-                                    value={exp.startDate?.year || ''}
-                                    onChange={(e) => handleExperienceChange(index, 'startDate', { year: e.target.value })}
-                                    placeholder="YYYY"
-                                    fullWidth
-                                    type="text"
-                                    inputProps={{
-                                        maxLength: 4,
-                                    }}
-                                />
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={exp.isCurrentJob || false}
-                                            onChange={(e) => handleExperienceChange(index, 'isCurrentJob', e.target.checked)}
-                                        />
-                                    }
-                                    label="Current Job"
-                                    sx={{ minWidth: '140px' }}
-                                />
-                                {!exp.isCurrentJob && (
-                                    <>
-                                        <FormControl fullWidth>
-                                            <InputLabel>End Month</InputLabel>
-                                            <Select
-                                                label="End Month"
-                                                value={exp.endDate?.month || ''}
-                                                onChange={(e) => handleExperienceChange(index, 'endDate', { month: e.target.value })}
-                                            >
-                                                {MONTHS.map((month) => (
-                                                    <MenuItem key={month.value} value={month.value}>
-                                                        {month.label}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                        <TextField
-                                            label="End Year"
-                                            value={exp.endDate?.year || ''}
-                                            onChange={(e) => handleExperienceChange(index, 'endDate', { year: e.target.value })}
-                                            placeholder="YYYY"
-                                            fullWidth
-                                            type="text"
-                                            inputProps={{
-                                                maxLength: 4,
-                                            }}
-                                        />
-                                    </>
-                                )}
-                            </Box>
-                            <TextField
-                                label="Description"
-                                value={exp.description}
-                                onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
-                                fullWidth
-                                multiline
-                                rows={3}
-                                sx={{ gridColumn: '1 / -1' }}
-                            />
-                        </Box>
-                    </Box>
-                ))}
-                <Button startIcon={<AddIcon />} onClick={addExperience}>
-                    Add Experience
-                </Button>
             </TabPanel>
 
             {/* Projects Tab */}
             <TabPanel value={currentTab} index={4}>
-                {resumeData.projects.map((project, index) => (
-                    <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
-                            <TextField
-                                label="Project Name"
-                                value={project.name}
-                                onChange={(e) => handleProjectChange(index, 'name', e.target.value)}
-                                fullWidth
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
-                                <TextField
-                                    label="Role"
-                                    value={project.role}
-                                    onChange={(e) => handleProjectChange(index, 'role', e.target.value)}
-                                    fullWidth
-                                />
-                                <IconButton
-                                    onClick={() => removeProject(index)}
-                                    sx={{ mt: 1 }}
-                                    size="small"
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Box>
-                            <TextField
-                                label="Description"
-                                value={project.description}
-                                onChange={(e) => handleProjectChange(index, 'description', e.target.value)}
-                                fullWidth
-                                multiline
-                                rows={3}
-                                sx={{ gridColumn: '1 / -1' }}
-                            />
-                        </Box>
-                    </Box>
-                ))}
-                <Button startIcon={<AddIcon />} onClick={addProject}>
-                    Add Project
-                </Button>
+                <Projects
+                    projects={resumeData.projects}
+                    onUpdate={handleUpdate}
+                    user={user}
+                    presets={sectionPresets.projects || []}
+                    resumeData={resumeData}
+                />
             </TabPanel>
 
             {/* Education Tab */}
             <TabPanel value={currentTab} index={5}>
-                {resumeData.education.map((edu, index) => (
-                    <Box key={index} sx={{ mb: 3, position: 'relative' }}>
-                        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, position: 'relative' }}>
-                            <TextField
-                                label="Institution"
-                                value={edu.institution}
-                                onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
-                                fullWidth
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
-                                <TextField
-                                    label="Degree"
-                                    value={edu.degree}
-                                    onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                                    fullWidth
-                                />
-                                <IconButton
-                                    onClick={() => removeEducation(index)}
-                                    sx={{ mt: 1 }}
-                                    size="small"
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Box>
-                            <TextField
-                                label="Year"
-                                value={edu.year}
-                                onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
-                                fullWidth
-                                placeholder="MONTH YYYY - MONTH YYYY"
-                            />
-                        </Box>
-                    </Box>
-                ))}
-                <Button startIcon={<AddIcon />} onClick={addEducation}>
-                    Add Education
-                </Button>
+                <Education
+                    education={resumeData.education}
+                    onUpdate={handleUpdate}
+                    user={user}
+                    presets={sectionPresets.education || []}
+                    resumeData={resumeData}
+                />
             </TabPanel>
 
             {/* Skills Tab */}
             <TabPanel value={currentTab} index={6}>
-                <PresetManager
-                    fieldId="skills"
-                    value={resumeData.skills.join(', ')}
-                    onValueChange={(value) => {
-                        const skillsArray = value.split(',').map(skill => skill.trim()).filter(skill => skill !== '');
-                        onUpdateResume({
-                            ...resumeData,
-                            skills: skillsArray.length > 0 ? skillsArray : ['']
-                        });
-                    }}
-                    label="Skills Presets"
-                    placeholder="Enter a name for this skills preset"
+                <Skills
+                    skills={resumeData.skills}
+                    onUpdate={handleUpdate}
+                    user={user}
+                    presets={sectionPresets.skills || []}
+                    resumeData={resumeData}
                 />
-                {resumeData.skills.map((skill, index) => (
-                    <Box key={index} sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <TextField
-                            label={`Skill ${index + 1}`}
-                            value={skill}
-                            onChange={(e) => handleSkillChange(index, e.target.value)}
-                            fullWidth
-                            placeholder="e.g., JavaScript, Python, Project Management"
-                        />
-                        <IconButton
-                            onClick={() => removeSkill(index)}
-                            size="small"
-                        >
-                            <DeleteIcon />
-                        </IconButton>
-                    </Box>
-                ))}
-                <Button startIcon={<AddIcon />} onClick={addSkill}>
-                    Add Skill
-                </Button>
             </TabPanel>
         </Paper>
     );
