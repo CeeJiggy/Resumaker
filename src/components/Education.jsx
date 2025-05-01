@@ -19,18 +19,29 @@ import AddIcon from '@mui/icons-material/Add';
 import { savePreset, deletePreset } from '../services/firestore';
 import SavePresetModal from './SavePresetModal';
 
-const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
+const Education = ({
+    education,
+    onUpdate,
+    onEducationChange,
+    onEducationBlur,
+    onAddEducation,
+    user,
+    presets = [],
+    resumeData
+}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [selectedPreset, setSelectedPreset] = useState('current');
+    const [isLoading, setIsLoading] = useState(false);
 
     // Initialize selectedPreset from resumeData when presets are loaded
     useEffect(() => {
         if (presets.length > 0) {
             const currentPreset = resumeData.config.selectedPresets?.education || presets[0].name;
             setSelectedPreset(currentPreset);
-            setIsLoading(false);
+        } else {
+            setSelectedPreset('current');
         }
+        setIsLoading(false);
     }, [presets, resumeData.config.selectedPresets]);
 
     const handleSavePreset = async (presetName) => {
@@ -77,26 +88,26 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
         }
     };
 
+    const handleEducationChange = (index, field, value) => {
+        if (onEducationChange) {
+            onEducationChange(index, field, value);
+        }
+    };
+
     const handleAddEducation = () => {
-        const newEducation = [
-            ...education,
-            {
-                institution: '',
-                degree: '',
-                year: ''
-            }
-        ];
-        onUpdate({ type: 'UPDATE_EDUCATION', value: newEducation });
+        if (onAddEducation) {
+            onAddEducation();
+        }
+    };
+
+    const handleEducationBlur = () => {
+        if (onEducationBlur) {
+            onEducationBlur();
+        }
     };
 
     const handleDeleteEducation = (index) => {
         const newEducation = education.filter((_, i) => i !== index);
-        onUpdate({ type: 'UPDATE_EDUCATION', value: newEducation });
-    };
-
-    const handleEducationChange = (index, field, value) => {
-        const newEducation = [...education];
-        newEducation[index][field] = value;
         onUpdate({ type: 'UPDATE_EDUCATION', value: newEducation });
     };
 
@@ -110,25 +121,19 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                         value={selectedPreset}
                         onChange={handlePresetSelect}
                         label="Select Preset"
-                        disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <MenuItem value="">
-                                <CircularProgress size={20} />
+                        <MenuItem value="current">Current Values</MenuItem>
+                        {presets.map((preset) => (
+                            <MenuItem key={preset.name} value={preset.name}>
+                                {preset.name}
                             </MenuItem>
-                        ) : (
-                            presets.map((preset) => (
-                                <MenuItem key={preset.name} value={preset.name}>
-                                    {preset.name}
-                                </MenuItem>
-                            ))
-                        )}
+                        ))}
                     </Select>
                 </FormControl>
-                {selectedPreset && (
+                {selectedPreset && selectedPreset !== 'current' && (
                     <IconButton
                         onClick={handleDeletePreset}
-                        disabled={!user || presets.length <= 1 || isLoading}
+                        disabled={!user || presets.length <= 1}
                         color="error"
                         size="small"
                     >
@@ -139,7 +144,7 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                     variant="outlined"
                     startIcon={<SaveIcon />}
                     onClick={() => setIsModalOpen(true)}
-                    disabled={!user || isLoading}
+                    disabled={!user}
                 >
                     Save as Preset
                 </Button>
@@ -154,7 +159,7 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                                 label="Institution"
                                 value={edu.institution}
                                 onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleEducationBlur}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -163,7 +168,7 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                                 label="Degree"
                                 value={edu.degree}
                                 onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleEducationBlur}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -172,7 +177,7 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                                 label="Year"
                                 value={edu.year}
                                 onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleEducationBlur}
                             />
                         </Grid>
                     </Grid>
@@ -192,7 +197,6 @@ const Education = ({ education, onUpdate, user, presets = [], resumeData }) => {
                 variant="outlined"
                 fullWidth
                 sx={{ mt: 2 }}
-                disabled={isLoading}
             >
                 Add Education
             </Button>

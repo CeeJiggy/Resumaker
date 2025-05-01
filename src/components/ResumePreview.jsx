@@ -107,21 +107,6 @@ const ResumePreview = ({ resumeData, user }) => {
         loadPresets();
     }, [user]);
 
-    const formatPhoneNumber = (phoneNumber) => {
-        // Remove all non-numeric characters
-        const cleaned = phoneNumber.replace(/\D/g, '');
-
-        // Check if the input is of correct length
-        const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-
-        if (match) {
-            return `(${match[1]})-${match[2]}-${match[3]}`;
-        }
-
-        // If the number doesn't match the expected format, return the original
-        return phoneNumber;
-    };
-
     const getFontSize = (baseSize) => {
         const scale = resumeData.config.style.fontSize === 'small' ? 0.9 :
             resumeData.config.style.fontSize === 'large' ? 1.1 : 1;
@@ -135,25 +120,24 @@ const ResumePreview = ({ resumeData, user }) => {
 
     const renderAddress = () => {
         const { location } = resumeData.personalInfo;
-        const { address } = resumeData.config.contact;
         const addressParts = [];
 
-        if (address.showStreet && location.street) {
+        if (resumeData.config.contact.showStreet && location.street) {
             addressParts.push(location.street);
         }
-        if (address.showApt && location.apt) {
+        if (resumeData.config.contact.showApt && location.apt) {
             addressParts.push(location.apt);
         }
-        if (address.showCity && location.city) {
+        if (resumeData.config.contact.showCity && location.city) {
             addressParts.push(location.city);
         }
-        if (address.showState && location.state) {
+        if (resumeData.config.contact.showState && location.state) {
             addressParts.push(location.state);
         }
-        if (address.showZip && location.zip) {
+        if (resumeData.config.contact.showZip && location.zip) {
             addressParts.push(location.zip);
         }
-        if (address.showCountry && location.country) {
+        if (resumeData.config.contact.showCountry && location.country) {
             addressParts.push(location.country);
         }
 
@@ -178,20 +162,25 @@ const ResumePreview = ({ resumeData, user }) => {
 
     const getSectionValue = (sectionKey, defaultValue) => {
         const selected = resumeData.config.selectedPresets?.[sectionKey];
-        if (selected && selected !== 'current') {
-            const preset = sectionPresets?.[sectionKey]?.find(p => p.name === selected);
-            if (preset) {
-                let value = preset.value;
-                if (sectionKey === 'skills') {
-                    if (typeof value === 'string') {
-                        value = value.split(',').map(s => s.trim()).filter(Boolean);
-                    }
-                    if (!Array.isArray(value)) {
-                        value = [];
-                    }
+
+        // If "current" is selected or no preset is selected, return the current value
+        if (!selected || selected === 'current') {
+            return defaultValue;
+        }
+
+        // Otherwise, look for the preset value
+        const preset = sectionPresets?.[sectionKey]?.find(p => p.name === selected);
+        if (preset) {
+            let value = preset.value;
+            if (sectionKey === 'skills') {
+                if (typeof value === 'string') {
+                    value = value.split(',').map(s => s.trim()).filter(Boolean);
                 }
-                return value;
+                if (!Array.isArray(value)) {
+                    value = [];
+                }
             }
+            return value;
         }
         return defaultValue;
     };
@@ -297,9 +286,21 @@ const ResumePreview = ({ resumeData, user }) => {
                                 {resumeData.config.contact.showPhone && resumeData.personalInfo.phone && (
                                     <>
                                         <Typography variant="subtitle1" color="textSecondary">
-                                            {formatPhoneNumber(resumeData.personalInfo.phone)}
+                                            {resumeData.personalInfo.phone}
                                         </Typography>
                                         <Typography color="textSecondary">|</Typography>
+                                    </>
+                                )}
+                                {resumeData.config.contact.showEmail && resumeData.personalInfo.email && (
+                                    <>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ color: resumeData.config.style.primaryColor }}
+                                        >
+                                            {resumeData.personalInfo.email}
+                                        </Typography>
+                                        <Typography color="textSecondary">|</Typography>
+
                                     </>
                                 )}
                                 {resumeData.config.contact.showWebsite && resumeData.personalInfo.website && (
@@ -317,17 +318,9 @@ const ResumePreview = ({ resumeData, user }) => {
                                                 {resumeData.personalInfo.website}
                                             </Link>
                                         </Typography>
-                                        <Typography color="textSecondary">|</Typography>
                                     </>
                                 )}
-                                {resumeData.config.contact.showEmail && resumeData.personalInfo.email && (
-                                    <Typography
-                                        variant="subtitle1"
-                                        sx={{ color: resumeData.config.style.primaryColor }}
-                                    >
-                                        {resumeData.personalInfo.email}
-                                    </Typography>
-                                )}
+
                             </Box>
                         </Box>
 
@@ -382,15 +375,40 @@ const ResumePreview = ({ resumeData, user }) => {
                                         color: '#333',
                                         fontSize: getFontSize(0.875),
                                         fontWeight: getFontWeight(),
-                                        pl: 2,
+                                        pl: exp.descriptionFormat === 'bullets' ? 0 : 0,
                                         position: 'relative',
-                                        '&::before': {
-                                            content: '"•"',
-                                            position: 'absolute',
-                                            left: 0,
-                                        }
                                     }}>
-                                        {exp.description}
+                                        {exp.descriptionFormat === 'bullets' ? (
+                                            <Box component="div" sx={{ pl: 2 }}>
+                                                {exp.description.split('\n').map((bullet, i) => (
+                                                    bullet.trim() && (
+                                                        <Typography
+                                                            key={i}
+                                                            component="div"
+                                                            sx={{
+                                                                color: '#333',
+                                                                fontSize: getFontSize(0.875),
+                                                                fontWeight: getFontWeight(),
+                                                                mb: 0.5,
+                                                                position: 'relative',
+                                                                pl: 2,
+                                                                '&::before': {
+                                                                    content: '"•"',
+                                                                    position: 'absolute',
+                                                                    left: 0,
+                                                                }
+                                                            }}
+                                                        >
+                                                            {bullet.replace(/^[•]\s*/, '')}
+                                                        </Typography>
+                                                    )
+                                                ))}
+                                            </Box>
+                                        ) : (
+                                            <Box sx={{ whiteSpace: 'pre-wrap' }}>
+                                                {exp.description}
+                                            </Box>
+                                        )}
                                     </Typography>
                                 </Box>
                             ))}

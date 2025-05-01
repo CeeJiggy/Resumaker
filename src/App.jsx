@@ -7,7 +7,7 @@ import ResumeForm from './components/ResumeForm'
 import ResumePreview from './components/ResumePreview'
 import { Button, Typography, Stack } from '@mui/material'
 import { signInWithGoogle, logout, onAuthStateChange } from './services/auth'
-import { getResume, saveResume, getPresets, savePreset } from './services/firestore'
+import { getResume, saveResume } from './services/firestore'
 import PrintIcon from '@mui/icons-material/Print'
 
 const theme = createTheme({
@@ -89,21 +89,20 @@ const initialResumeData = {
       showEmail: true,
       showPhone: true,
       showWebsite: true,
-      address: {
-        showStreet: false,
-        showApt: false,
-        showCity: true,
-        showState: true,
-        showZip: false,
-        showCountry: false
-      }
+      showLocation: true,
+      showStreet: false,
+      showApt: false,
+      showCity: true,
+      showState: true,
+      showZip: false,
+      showCountry: false
     },
     selectedPresets: {
-      summary: 'Default',
-      experience: 'Default',
-      education: 'Default',
-      skills: 'Default',
-      projects: 'Default'
+      summary: 'current',
+      experience: 'current',
+      education: 'current',
+      skills: 'current',
+      projects: 'current'
     }
   },
   personalInfo: {
@@ -121,38 +120,27 @@ const initialResumeData = {
     }
   },
   summary: '',
-  experience: [
-    {
-      company: '',
-      position: '',
-      startDate: {
-        month: '',
-        year: ''
-      },
-      endDate: {
-        month: '',
-        year: ''
-      },
-      isCurrentJob: false,
-      description: '',
-    },
-  ],
-  education: [
-    {
-      institution: '',
-      degree: '',
-      year: '',
-    },
-  ],
-  skills: [''],
-  projects: [
-    {
-      name: '',
-      role: '',
-      description: '',
-    },
-  ],
-}
+  experience: [{
+    company: '',
+    position: '',
+    startDate: { month: '', year: '' },
+    endDate: { month: '', year: '' },
+    isCurrentJob: false,
+    description: '',
+    descriptionFormat: 'paragraph'
+  }],
+  education: [{
+    institution: '',
+    degree: '',
+    year: ''
+  }],
+  projects: [{
+    name: '',
+    role: '',
+    description: ''
+  }],
+  skills: ['']
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -176,60 +164,23 @@ function App() {
           const savedData = await getResume(user.uid);
           if (savedData) {
             setResumeData(savedData);
-
-            // Create default presets if they don't exist
-            const sections = ['summary', 'experience', 'education', 'skills', 'projects'];
-            for (const section of sections) {
-              const presets = await getPresets(user.uid, section);
-              if (!presets || presets.length === 0) {
-                const defaultPreset = {
-                  name: 'Default',
-                  value: section === 'skills' ? [''] : section === 'experience' ? [{
-                    company: '',
-                    position: '',
-                    startDate: { month: '', year: '' },
-                    endDate: { month: '', year: '' },
-                    isCurrentJob: false,
-                    description: ''
-                  }] : section === 'education' ? [{
-                    institution: '',
-                    degree: '',
-                    year: ''
-                  }] : section === 'projects' ? [{
-                    name: '',
-                    role: '',
-                    description: ''
-                  }] : ''
-                };
-                await savePreset(user.uid, section, defaultPreset);
-              }
-            }
           } else {
-            // If no saved data exists, create default presets
-            const sections = ['summary', 'experience', 'education', 'skills', 'projects'];
-            for (const section of sections) {
-              const defaultPreset = {
-                name: 'Default',
-                value: section === 'skills' ? [''] : section === 'experience' ? [{
-                  company: '',
-                  position: '',
-                  startDate: { month: '', year: '' },
-                  endDate: { month: '', year: '' },
-                  isCurrentJob: false,
-                  description: ''
-                }] : section === 'education' ? [{
-                  institution: '',
-                  degree: '',
-                  year: ''
-                }] : section === 'projects' ? [{
-                  name: '',
-                  role: '',
-                  description: ''
-                }] : ''
-              };
-              await savePreset(user.uid, section, defaultPreset);
-            }
-            setResumeData(initialResumeData);
+            // If no saved data exists, initialize with current values for all sections
+            const newResumeData = {
+              ...initialResumeData,
+              config: {
+                ...initialResumeData.config,
+                selectedPresets: {
+                  summary: 'current',
+                  experience: 'current',
+                  education: 'current',
+                  skills: 'current',
+                  projects: 'current'
+                }
+              }
+            };
+            setResumeData(newResumeData);
+            await saveResume(user.uid, newResumeData);
           }
         } catch (error) {
           console.error('Error loading resume data:', error);

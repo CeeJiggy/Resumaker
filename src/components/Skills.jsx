@@ -12,25 +12,39 @@ import {
     MenuItem,
     Stack,
     CircularProgress,
+    Snackbar,
+    Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
-import { savePreset } from '../services/firestore';
+import { savePreset, deletePreset } from '../services/firestore';
 import SavePresetModal from './SavePresetModal';
 
-const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
+const Skills = ({
+    skills,
+    onUpdate,
+    onSkillsChange,
+    onSkillBlur,
+    onAddSkill,
+    user,
+    presets = [],
+    resumeData
+}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [selectedPreset, setSelectedPreset] = useState('current');
+    const [isLoading, setIsLoading] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     // Initialize selectedPreset from resumeData when presets are loaded
     useEffect(() => {
         if (presets.length > 0) {
             const currentPreset = resumeData.config.selectedPresets?.skills || presets[0].name;
             setSelectedPreset(currentPreset);
-            setIsLoading(false);
+        } else {
+            setSelectedPreset('current');
         }
+        setIsLoading(false);
     }, [presets, resumeData.config.selectedPresets]);
 
     const handleSavePreset = async (presetName) => {
@@ -58,8 +72,16 @@ const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
         }
     };
 
+    const handleSkillChange = (index, value) => {
+        if (onSkillsChange) {
+            onSkillsChange(index, value);
+        }
+    };
+
     const handleAddSkill = () => {
-        onUpdate({ type: 'UPDATE_SKILLS', value: [...skills, ''] });
+        if (onAddSkill) {
+            onAddSkill();
+        }
     };
 
     const handleDeleteSkill = (index) => {
@@ -70,10 +92,49 @@ const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
         onUpdate({ type: 'UPDATE_SKILLS', value: newSkills });
     };
 
-    const handleSkillChange = (index, value) => {
-        const newSkills = [...skills];
-        newSkills[index] = value;
-        onUpdate({ type: 'UPDATE_SKILLS', value: newSkills });
+    const handleSkillBlur = () => {
+        if (onSkillBlur) {
+            onSkillBlur();
+        }
+    };
+
+    const handleDeletePreset = async (presetName) => {
+        try {
+            await deletePreset(user.uid, 'skills', presetName);
+
+            // If we're deleting the currently selected preset, switch to 'current'
+            if (selectedPreset === presetName) {
+                setSelectedPreset('current');
+                // Update the resume config to reflect this change
+                const newSelectedPresets = {
+                    ...resumeData.config.selectedPresets,
+                    skills: 'current'
+                };
+                onUpdate({
+                    type: 'UPDATE_RESUME_CONFIG',
+                    value: {
+                        ...resumeData.config,
+                        selectedPresets: newSelectedPresets
+                    }
+                });
+            }
+
+            // Refresh presets
+            onUpdate({ type: 'REFRESH_PRESETS', section: 'skills' });
+
+            setSnackbar({
+                open: true,
+                message: 'Preset deleted successfully',
+                severity: 'success'
+            });
+        } catch (error) {
+            console.error('Error deleting preset:', error);
+            setSnackbar({
+                open: true,
+                message: 'Error deleting preset',
+                severity: 'error'
+            });
+        }
     };
 
     return (
@@ -86,26 +147,29 @@ const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
                         value={selectedPreset}
                         onChange={handlePresetSelect}
                         label="Select Preset"
-                        disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <MenuItem value="">
-                                <CircularProgress size={20} />
+                        <MenuItem value="current">Current Values</MenuItem>
+                        {presets.map((preset) => (
+                            <MenuItem key={preset.name} value={preset.name}>
+                                {preset.name}
                             </MenuItem>
-                        ) : (
-                            presets.map((preset) => (
-                                <MenuItem key={preset.name} value={preset.name}>
-                                    {preset.name}
-                                </MenuItem>
-                            ))
-                        )}
+                        ))}
                     </Select>
                 </FormControl>
+                {selectedPreset && selectedPreset !== 'current' && (
+                    <IconButton
+                        onClick={() => handleDeletePreset(selectedPreset)}
+                        disabled={!user || presets.length <= 1}
+                        sx={{ color: 'error.main' }}
+                    >
+                        <DeleteIcon />
+                    </IconButton>
+                )}
                 <Button
                     variant="outlined"
                     onClick={() => setIsModalOpen(true)}
                     startIcon={<SaveIcon />}
-                    disabled={!user || isLoading}
+                    disabled={!user}
                 >
                     Save as Preset
                 </Button>
@@ -120,6 +184,7 @@ const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
                                 label="Skill"
                                 value={skill}
                                 onChange={(e) => handleSkillChange(index, e.target.value)}
+                                onBlur={handleSkillBlur}
                             />
                         </Grid>
                         <Grid item>
@@ -151,6 +216,21 @@ const Skills = ({ skills, onUpdate, user, presets = [], resumeData }) => {
                 existingPresets={presets}
                 title="Save Skills Preset"
             />
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

@@ -14,6 +14,7 @@ import {
     MenuItem,
     Stack,
     CircularProgress,
+    Switch,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -21,18 +22,29 @@ import AddIcon from '@mui/icons-material/Add';
 import { savePreset, deletePreset } from '../services/firestore';
 import SavePresetModal from './SavePresetModal';
 
-const Experience = ({ experience, onUpdate, user, presets = [], resumeData }) => {
+const Experience = ({
+    experience,
+    onUpdate,
+    onExperienceChange,
+    onExperienceBlur,
+    onAddExperience,
+    user,
+    presets = [],
+    resumeData
+}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [selectedPreset, setSelectedPreset] = useState('current');
+    const [isLoading, setIsLoading] = useState(false);
 
     // Initialize selectedPreset from resumeData when presets are loaded
     useEffect(() => {
         if (presets.length > 0) {
             const currentPreset = resumeData.config.selectedPresets?.experience || presets[0].name;
             setSelectedPreset(currentPreset);
-            setIsLoading(false);
+        } else {
+            setSelectedPreset('current');
         }
+        setIsLoading(false);
     }, [presets, resumeData.config.selectedPresets]);
 
     const handleSavePreset = async (presetName) => {
@@ -79,19 +91,16 @@ const Experience = ({ experience, onUpdate, user, presets = [], resumeData }) =>
         }
     };
 
+    const handleExperienceChange = (index, field, value) => {
+        if (onExperienceChange) {
+            onExperienceChange(index, field, value);
+        }
+    };
+
     const handleAddExperience = () => {
-        const newExperience = [
-            ...experience,
-            {
-                company: '',
-                position: '',
-                startDate: { month: '', year: '' },
-                endDate: { month: '', year: '' },
-                isCurrentJob: false,
-                description: ''
-            }
-        ];
-        onUpdate({ type: 'UPDATE_EXPERIENCE', value: newExperience });
+        if (onAddExperience) {
+            onAddExperience();
+        }
     };
 
     const handleDeleteExperience = (index) => {
@@ -99,153 +108,235 @@ const Experience = ({ experience, onUpdate, user, presets = [], resumeData }) =>
         onUpdate({ type: 'UPDATE_EXPERIENCE', value: newExperience });
     };
 
-    const handleExperienceChange = (index, field, value) => {
-        const newExperience = [...experience];
-        if (field.includes('.')) {
-            const [parent, child] = field.split('.');
-            newExperience[index][parent] = {
-                ...newExperience[index][parent],
-                [child]: value
-            };
-        } else {
-            newExperience[index][field] = value;
-        }
-        onUpdate({ type: 'UPDATE_EXPERIENCE', value: newExperience });
-    };
-
     return (
         <Box>
-            <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+            <Stack direction="row" spacing={2} alignItems="center" mb={2}
+                sx={{
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    '& > *': {
+                        mb: { xs: 1, sm: 0 }
+                    }
+                }}>
                 <Typography variant="h6">Experience</Typography>
-                <FormControl sx={{ minWidth: 200 }}>
+                <FormControl sx={{
+                    minWidth: { xs: '100%', sm: 200 },
+                    flex: { xs: '1 1 100%', sm: '0 1 auto' }
+                }}>
                     <InputLabel>Select Preset</InputLabel>
                     <Select
                         value={selectedPreset}
                         onChange={handlePresetSelect}
                         label="Select Preset"
-                        disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <MenuItem value="">
-                                <CircularProgress size={20} />
+                        <MenuItem value="current">Current Values</MenuItem>
+                        {presets.map((preset) => (
+                            <MenuItem key={preset.name} value={preset.name}>
+                                {preset.name}
                             </MenuItem>
-                        ) : (
-                            presets.map((preset) => (
-                                <MenuItem key={preset.name} value={preset.name}>
-                                    {preset.name}
-                                </MenuItem>
-                            ))
-                        )}
+                        ))}
                     </Select>
                 </FormControl>
-                {selectedPreset && (
-                    <IconButton
-                        onClick={handleDeletePreset}
-                        disabled={!user || presets.length <= 1 || isLoading}
-                        color="error"
-                        size="small"
+                <Box sx={{
+                    display: 'flex',
+                    gap: 1,
+                    flex: { xs: '1 1 100%', sm: '0 1 auto' },
+                    justifyContent: { xs: 'flex-start', sm: 'center' }
+                }}>
+                    {selectedPreset && selectedPreset !== 'current' && (
+                        <IconButton
+                            onClick={handleDeletePreset}
+                            disabled={!user || presets.length <= 1}
+                            color="error"
+                            size="small"
+                        >
+                            <DeleteIcon />
+                        </IconButton>
+                    )}
+                    <Button
+                        variant="outlined"
+                        startIcon={<SaveIcon />}
+                        onClick={() => setIsModalOpen(true)}
+                        disabled={!user}
                     >
-                        <DeleteIcon />
-                    </IconButton>
-                )}
-                <Button
-                    variant="outlined"
-                    startIcon={<SaveIcon />}
-                    onClick={() => setIsModalOpen(true)}
-                    disabled={!user || isLoading}
-                >
-                    Save as Preset
-                </Button>
+                        Save as Preset
+                    </Button>
+                </Box>
             </Stack>
 
             {experience.map((job, index) => (
-                <Box key={index} sx={{ mb: 4, position: 'relative' }}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Company"
-                                value={job.company}
-                                onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Position"
-                                value={job.position}
-                                onChange={(e) => handleExperienceChange(index, 'position', e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                fullWidth
-                                label="Start Month"
-                                value={job.startDate.month}
-                                onChange={(e) => handleExperienceChange(index, 'startDate.month', e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                fullWidth
-                                label="Start Year"
-                                value={job.startDate.year}
-                                onChange={(e) => handleExperienceChange(index, 'startDate.year', e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                fullWidth
-                                label="End Month"
-                                value={job.endDate.month}
-                                onChange={(e) => handleExperienceChange(index, 'endDate.month', e.target.value)}
-                                disabled={job.isCurrentJob || isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                fullWidth
-                                label="End Year"
-                                value={job.endDate.year}
-                                onChange={(e) => handleExperienceChange(index, 'endDate.year', e.target.value)}
-                                disabled={job.isCurrentJob || isLoading}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={job.isCurrentJob}
-                                        onChange={(e) => handleExperienceChange(index, 'isCurrentJob', e.target.checked)}
-                                        disabled={isLoading}
+                <Box key={index}>
+                    <Box sx={{
+                        position: 'relative',
+                        p: 3,
+                        mb: 2,
+                        backgroundColor: 'background.paper',
+                        borderRadius: 1,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                    }}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} container spacing={2}>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Company"
+                                        value={job.company}
+                                        onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
                                     />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Position"
+                                        value={job.position}
+                                        onChange={(e) => handleExperienceChange(index, 'position', e.target.value)}
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                    Duration
+                                </Typography>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6} container spacing={2}>
+                                        <Grid item xs={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Start Month"
+                                                value={job.startDate.month}
+                                                onChange={(e) => handleExperienceChange(index, 'startDate.month', e.target.value)}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Start Year"
+                                                value={job.startDate.year}
+                                                onChange={(e) => handleExperienceChange(index, 'startDate.year', e.target.value)}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                    <Grid item xs={12} md={6} container spacing={2} alignItems="center">
+                                        <Grid item xs={5}>
+                                            <TextField
+                                                fullWidth
+                                                label="End Month"
+                                                value={job.endDate.month}
+                                                onChange={(e) => handleExperienceChange(index, 'endDate.month', e.target.value)}
+                                                disabled={job.isCurrentJob}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={5}>
+                                            <TextField
+                                                fullWidth
+                                                label="End Year"
+                                                value={job.endDate.year}
+                                                onChange={(e) => handleExperienceChange(index, 'endDate.year', e.target.value)}
+                                                disabled={job.isCurrentJob}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={2}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={job.isCurrentJob}
+                                                        onChange={(e) => handleExperienceChange(index, 'isCurrentJob', e.target.checked)}
+                                                    />
+                                                }
+                                                label="Current"
+                                                sx={{
+                                                    mt: { xs: 1, sm: 0 },
+                                                    ml: { xs: -1, sm: -2 }
+                                                }}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+
+                            <Grid item xs={12} sx={{ width: '100%' }}>
+                                <Box sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    mb: 1
+                                }}>
+                                    <Typography variant="subtitle2" color="textSecondary">
+                                        Job Description
+                                    </Typography>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={job.descriptionFormat === 'bullets'}
+                                                onChange={(e) => handleExperienceChange(index, 'descriptionFormat', e.target.checked ? 'bullets' : 'paragraph')}
+                                            />
+                                        }
+                                        label="Bullet Points"
+                                    />
+                                </Box>
+                                {job.descriptionFormat === 'bullets' ? (
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={8}
+                                        placeholder="• Use bullet points to highlight key responsibilities and achievements...
+• Start each point with a strong action verb...
+• Quantify achievements where possible..."
+                                        value={job.description}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            // Ensure each line starts with a bullet point
+                                            const formattedValue = value.split('\n')
+                                                .map(line => line.trim())
+                                                .map(line => line.startsWith('•') ? line : `• ${line}`)
+                                                .join('\n');
+                                            handleExperienceChange(index, 'description', formattedValue);
+                                        }}
+                                        sx={{
+                                            '& .MuiInputBase-root': {
+                                                backgroundColor: 'background.default'
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={8}
+                                        placeholder="Describe your responsibilities and achievements..."
+                                        value={job.description}
+                                        onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                                        sx={{
+                                            '& .MuiInputBase-root': {
+                                                backgroundColor: 'background.default'
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </Grid>
+                        </Grid>
+                        <IconButton
+                            onClick={() => handleDeleteExperience(index)}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                bgcolor: 'background.paper',
+                                '&:hover': {
+                                    bgcolor: 'error.light',
+                                    color: 'error.contrastText'
                                 }
-                                label="Current Job"
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={4}
-                                label="Description"
-                                value={job.description}
-                                onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </Grid>
-                    </Grid>
-                    <IconButton
-                        onClick={() => handleDeleteExperience(index)}
-                        sx={{ position: 'absolute', top: -20, right: -20 }}
-                        disabled={isLoading}
-                    >
-                        <DeleteIcon />
-                    </IconButton>
+                            }}
+                        >
+                            <DeleteIcon />
+                        </IconButton>
+                    </Box>
+                    {index < experience.length - 1 && (
+                        <Box sx={{ my: 3, borderBottom: '2px solid', borderColor: 'divider' }} />
+                    )}
                 </Box>
             ))}
 
@@ -254,8 +345,12 @@ const Experience = ({ experience, onUpdate, user, presets = [], resumeData }) =>
                 onClick={handleAddExperience}
                 variant="outlined"
                 fullWidth
-                sx={{ mt: 2 }}
-                disabled={isLoading}
+                sx={{
+                    mt: 4,
+                    mb: 2,
+                    py: 1.5,
+                    backgroundColor: 'background.paper'
+                }}
             >
                 Add Experience
             </Button>

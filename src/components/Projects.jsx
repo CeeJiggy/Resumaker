@@ -19,18 +19,29 @@ import AddIcon from '@mui/icons-material/Add';
 import { savePreset, deletePreset } from '../services/firestore';
 import SavePresetModal from './SavePresetModal';
 
-const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
+const Projects = ({
+    projects,
+    onUpdate,
+    onProjectChange,
+    onProjectBlur,
+    onAddProject,
+    user,
+    presets = [],
+    resumeData
+}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [selectedPreset, setSelectedPreset] = useState('current');
+    const [isLoading, setIsLoading] = useState(false);
 
     // Initialize selectedPreset from resumeData when presets are loaded
     useEffect(() => {
         if (presets.length > 0) {
             const currentPreset = resumeData.config.selectedPresets?.projects || presets[0].name;
             setSelectedPreset(currentPreset);
-            setIsLoading(false);
+        } else {
+            setSelectedPreset('current');
         }
+        setIsLoading(false);
     }, [presets, resumeData.config.selectedPresets]);
 
     const handleSavePreset = async (presetName) => {
@@ -77,26 +88,26 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
         }
     };
 
+    const handleProjectChange = (index, field, value) => {
+        if (onProjectChange) {
+            onProjectChange(index, field, value);
+        }
+    };
+
     const handleAddProject = () => {
-        const newProjects = [
-            ...projects,
-            {
-                name: '',
-                role: '',
-                description: ''
-            }
-        ];
-        onUpdate({ type: 'UPDATE_PROJECTS', value: newProjects });
+        if (onAddProject) {
+            onAddProject();
+        }
+    };
+
+    const handleProjectBlur = () => {
+        if (onProjectBlur) {
+            onProjectBlur();
+        }
     };
 
     const handleDeleteProject = (index) => {
         const newProjects = projects.filter((_, i) => i !== index);
-        onUpdate({ type: 'UPDATE_PROJECTS', value: newProjects });
-    };
-
-    const handleProjectChange = (index, field, value) => {
-        const newProjects = [...projects];
-        newProjects[index][field] = value;
         onUpdate({ type: 'UPDATE_PROJECTS', value: newProjects });
     };
 
@@ -110,25 +121,19 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                         value={selectedPreset}
                         onChange={handlePresetSelect}
                         label="Select Preset"
-                        disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <MenuItem value="">
-                                <CircularProgress size={20} />
+                        <MenuItem value="current">Current Values</MenuItem>
+                        {presets.map((preset) => (
+                            <MenuItem key={preset.name} value={preset.name}>
+                                {preset.name}
                             </MenuItem>
-                        ) : (
-                            presets.map((preset) => (
-                                <MenuItem key={preset.name} value={preset.name}>
-                                    {preset.name}
-                                </MenuItem>
-                            ))
-                        )}
+                        ))}
                     </Select>
                 </FormControl>
-                {selectedPreset && (
+                {selectedPreset && selectedPreset !== 'current' && (
                     <IconButton
                         onClick={handleDeletePreset}
-                        disabled={!user || presets.length <= 1 || isLoading}
+                        disabled={!user || presets.length <= 1}
                         color="error"
                         size="small"
                     >
@@ -139,7 +144,7 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                     variant="outlined"
                     startIcon={<SaveIcon />}
                     onClick={() => setIsModalOpen(true)}
-                    disabled={!user || isLoading}
+                    disabled={!user}
                 >
                     Save as Preset
                 </Button>
@@ -154,7 +159,7 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                                 label="Project Name"
                                 value={project.name}
                                 onChange={(e) => handleProjectChange(index, 'name', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleProjectBlur}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -163,7 +168,7 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                                 label="Role"
                                 value={project.role}
                                 onChange={(e) => handleProjectChange(index, 'role', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleProjectBlur}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -174,7 +179,7 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                                 label="Description"
                                 value={project.description}
                                 onChange={(e) => handleProjectChange(index, 'description', e.target.value)}
-                                disabled={isLoading}
+                                onBlur={handleProjectBlur}
                             />
                         </Grid>
                     </Grid>
@@ -194,7 +199,6 @@ const Projects = ({ projects, onUpdate, user, presets = [], resumeData }) => {
                 variant="outlined"
                 fullWidth
                 sx={{ mt: 2 }}
-                disabled={isLoading}
             >
                 Add Project
             </Button>

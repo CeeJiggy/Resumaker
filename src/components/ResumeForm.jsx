@@ -34,45 +34,15 @@ import Education from './Education';
 import Projects from './Projects';
 import Skills from './Skills';
 import Summary from './Summary';
-import { getAllPresets, savePreset } from '../services/firestore';
+import { getAllPresets } from '../services/firestore';
 
 const sectionKeys = [
     { key: 'summary', label: 'Professional Summary' },
-    { key: 'experience', label: 'Jobs' },
+    { key: 'experience', label: 'Experience' },
     { key: 'projects', label: 'Projects' },
     { key: 'education', label: 'Education' },
     { key: 'skills', label: 'Skills' }
 ];
-
-const getDefaultPresetForSection = (key) => {
-    switch (key) {
-        case 'skills':
-            return [''];
-        case 'experience':
-            return [{
-                company: '',
-                position: '',
-                startDate: { month: '', year: '' },
-                endDate: { month: '', year: '' },
-                isCurrentJob: false,
-                description: ''
-            }];
-        case 'education':
-            return [{
-                institution: '',
-                degree: '',
-                year: ''
-            }];
-        case 'projects':
-            return [{
-                name: '',
-                role: '',
-                description: ''
-            }];
-        default:
-            return '';
-    }
-};
 
 const MONTHS = [
     { value: '', label: 'No Month' },
@@ -118,36 +88,22 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
+    // Load presets only when user changes or on mount
     useEffect(() => {
         const loadPresets = async () => {
             if (user) {
                 try {
-                    let allPresets = await getAllPresets(user.uid);
+                    const allPresets = await getAllPresets(user.uid);
+                    setSectionPresets(allPresets || {});
 
-                    // If no presets exist, create default presets
-                    if (!allPresets || Object.keys(allPresets).length === 0) {
-                        allPresets = {};
-                        // Create default presets for each section
-                        for (const { key } of sectionKeys) {
-                            const defaultPreset = {
-                                name: 'Default',
-                                value: getDefaultPresetForSection(key)
-                            };
-                            await savePreset(user.uid, key, defaultPreset);
-                            allPresets[key] = [defaultPreset];
-                        }
-                    }
-
-                    setSectionPresets(allPresets);
-
-                    // Ensure default selections are set in the form
+                    // Initialize any unset section presets to 'current'
                     const currentSelectedPresets = resumeData.config.selectedPresets || {};
                     const newSelectedPresets = { ...currentSelectedPresets };
                     let hasChanges = false;
 
                     sectionKeys.forEach(({ key }) => {
                         if (!currentSelectedPresets[key]) {
-                            newSelectedPresets[key] = 'Default';
+                            newSelectedPresets[key] = 'current';
                             hasChanges = true;
                         }
                     });
@@ -324,46 +280,67 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
     };
 
     const handleUpdate = (action) => {
-        let newResumeData = { ...resumeData };
-
         switch (action.type) {
+            case 'REFRESH_PRESETS': {
+                // Reload presets for the specific section
+                const loadSectionPresets = async () => {
+                    if (user) {
+                        try {
+                            const allPresets = await getAllPresets(user.uid);
+                            setSectionPresets(prev => ({
+                                ...prev,
+                                [action.section]: allPresets[action.section] || []
+                            }));
+                        } catch (error) {
+                            console.error('Error refreshing presets:', error);
+                        }
+                    }
+                };
+                loadSectionPresets();
+                break;
+            }
             case 'UPDATE_EXPERIENCE':
-                newResumeData.experience = action.value;
+                onUpdateResume({
+                    ...resumeData,
+                    experience: action.value
+                });
                 break;
             case 'UPDATE_EDUCATION':
-                newResumeData.education = action.value;
+                onUpdateResume({
+                    ...resumeData,
+                    education: action.value
+                });
                 break;
             case 'UPDATE_PROJECTS':
-                newResumeData.projects = action.value;
+                onUpdateResume({
+                    ...resumeData,
+                    projects: action.value
+                });
                 break;
             case 'UPDATE_SKILLS':
-                newResumeData.skills = action.value;
+                onUpdateResume({
+                    ...resumeData,
+                    skills: action.value
+                });
                 break;
             case 'UPDATE_SUMMARY':
-                newResumeData.summary = action.value;
+                onUpdateResume({
+                    ...resumeData,
+                    summary: action.value
+                });
                 break;
-            case 'REFRESH_PRESETS':
-                // Reload presets when a new preset is saved
-                loadPresets();
-                return;
+            case 'UPDATE_RESUME_CONFIG':
+                onUpdateResume({
+                    ...resumeData,
+                    config: action.value
+                });
+                break;
             default:
                 console.warn('Unknown action type:', action.type);
                 return;
         }
 
-        onUpdateResume(newResumeData);
-        onSaveToFirestore(newResumeData);
-    };
-
-    const loadPresets = async () => {
-        if (user) {
-            try {
-                const allPresets = await getAllPresets(user.uid);
-                setSectionPresets(allPresets || {});
-            } catch (error) {
-                console.error('Error loading presets:', error);
-            }
-        }
+        onSaveToFirestore(resumeData);
     };
 
     return (
@@ -439,7 +416,7 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                     <Tab icon={<SettingsIcon />} label={isSmall ? '' : 'Resume'} />
                     <Tab icon={<PersonIcon />} label={isSmall ? '' : 'Info'} />
                     <Tab icon={<DescriptionIcon />} label={isSmall ? '' : 'Summary'} />
-                    <Tab icon={<WorkIcon />} label={isSmall ? '' : 'Jobs'} />
+                    <Tab icon={<WorkIcon />} label={isSmall ? '' : 'Experience'} />
                     <Tab icon={<BuildIcon />} label={isSmall ? '' : 'Projects'} />
                     <Tab icon={<SchoolIcon />} label={isSmall ? '' : 'Education'} />
                     <Tab icon={<StarIcon />} label={isSmall ? '' : 'Skills'} />
@@ -464,6 +441,7 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                         value={resumeData.personalInfo.name}
                         onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
                         onBlur={handlePersonalInfoBlur}
+                        placeholder="Displayed in the format you enter it."
                     />
                     <TextField
                         fullWidth
@@ -471,6 +449,7 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                         value={resumeData.personalInfo.email}
                         onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
                         onBlur={handlePersonalInfoBlur}
+                        placeholder="Displayed in the format you enter it."
                     />
                     <TextField
                         fullWidth
@@ -478,6 +457,7 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                         value={resumeData.personalInfo.phone}
                         onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
                         onBlur={handlePersonalInfoBlur}
+                        placeholder="Displayed in the format you enter it."
                     />
                     <TextField
                         fullWidth
@@ -485,7 +465,7 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                         value={resumeData.personalInfo.website}
                         onChange={(e) => handlePersonalInfoChange('website', e.target.value)}
                         onBlur={handlePersonalInfoBlur}
-                        placeholder="https://your-website.com"
+                        placeholder="Displayed in the format you enter it. Adds https:// to the beginning of the hyperlink if you don't."
                     />
                     <Typography variant="subtitle1" gutterBottom>
                         Address
@@ -563,6 +543,9 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                 <Experience
                     experience={resumeData.experience}
                     onUpdate={handleUpdate}
+                    onExperienceChange={handleExperienceChange}
+                    onExperienceBlur={handleExperienceBlur}
+                    onAddExperience={addExperience}
                     user={user}
                     presets={sectionPresets.experience || []}
                     resumeData={resumeData}
@@ -574,6 +557,9 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                 <Projects
                     projects={resumeData.projects}
                     onUpdate={handleUpdate}
+                    onProjectChange={handleProjectChange}
+                    onProjectBlur={handleProjectBlur}
+                    onAddProject={addProject}
                     user={user}
                     presets={sectionPresets.projects || []}
                     resumeData={resumeData}
@@ -585,6 +571,9 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                 <Education
                     education={resumeData.education}
                     onUpdate={handleUpdate}
+                    onEducationChange={handleEducationChange}
+                    onEducationBlur={handleEducationBlur}
+                    onAddEducation={addEducation}
                     user={user}
                     presets={sectionPresets.education || []}
                     resumeData={resumeData}
@@ -596,6 +585,9 @@ const ResumeForm = ({ resumeData, onUpdateResume, onSaveToFirestore, user }) => 
                 <Skills
                     skills={resumeData.skills}
                     onUpdate={handleUpdate}
+                    onSkillsChange={handleSkillsChange}
+                    onSkillBlur={handleSkillBlur}
+                    onAddSkill={addSkill}
                     user={user}
                     presets={sectionPresets.skills || []}
                     resumeData={resumeData}
